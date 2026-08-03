@@ -12,8 +12,18 @@ class_name MeshMerge
 ## from ~55 instances to about eight; the map from ~250 to under twenty.
 ##
 ## The trade is per-object frustum culling — a merged mesh is drawn whole or not
-## at all. At this scale that's the right way round: the geometry is a few
-## thousand triangles total, and node overhead costs far more than the vertices.
+## at all. At this scale that's the right way round, and it has been measured
+## rather than assumed: splitting the merge into a 12–40m grid so each chunk
+## could be culled separately took draw calls from 150 up to between 168 and 224,
+## on both maps, and never once lowered them. Neither level has anything to cull
+## against — the forecourt is one open sightline and the garage's pillars are far
+## too small to hide a chunk behind. One mesh per material is the right answer
+## here; please don't re-derive it.
+##
+## The one real cost of merging whole-level meshes is lighting: the Mobile
+## renderer lets only **eight** omni lights touch any single object, and Beach
+## Gas places twelve, so four of its lamps contribute nothing to the ground.
+## Fixing that means removing lamps, not changing this file.
 
 ## Merge every direct MeshInstance3D child of `parent` that has no children of
 ## its own. Meshes are grouped by material *and* shadow setting, so a decal that
@@ -49,31 +59,42 @@ static func merge_children(parent: Node3D) -> void:
 		return   # not worth a merged mesh
 
 	for shadow in groups:
-		var by_material: Dictionary = groups[shadow]
-		var combined := ArrayMesh.new()
-		var materials: Array = []
-		for material in by_material:
-			var tool := SurfaceTool.new()
-			tool.begin(Mesh.PRIMITIVE_TRIANGLES)
-			for mi in by_material[material]:
-				tool.append_from(mi.mesh, 0, mi.transform)
-			tool.index()
-			tool.commit(combined)
-			materials.append(material)
-
-		if combined.get_surface_count() == 0:
+		var merged := _combine(groups[shadow], func(mi): return mi.mesh,
+			func(mi): return mi.transform)
+		if merged == null:
 			continue
-		for i in materials.size():
-			combined.surface_set_material(i, materials[i])
-
-		var merged := MeshInstance3D.new()
 		merged.name = "Merged"
-		merged.mesh = combined
 		merged.cast_shadow = shadow
 		parent.add_child(merged)
 
 	for mi in originals:
 		mi.queue_free()
+
+
+## Build one MeshInstance3D from `by_material`, one surface per material.
+## `get_mesh` and `get_transform` pull those out of whatever the caller is
+## holding — live nodes in one case, recorded pairs in the other.
+static func _combine(by_material: Dictionary, get_mesh: Callable,
+		get_transform: Callable) -> MeshInstance3D:
+	var combined := ArrayMesh.new()
+	var materials: Array = []
+	for material in by_material:
+		var tool := SurfaceTool.new()
+		tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+		for item in by_material[material]:
+			tool.append_from(get_mesh.call(item), 0, get_transform.call(item))
+		tool.index()
+		tool.commit(combined)
+		materials.append(material)
+
+	if combined.get_surface_count() == 0:
+		return null
+	for i in materials.size():
+		combined.surface_set_material(i, materials[i])
+
+	var merged := MeshInstance3D.new()
+	merged.mesh = combined
+	return merged
 
 
 ## Flatten an entire subtree into a single mesh. For decoration that never moves
@@ -88,25 +109,11 @@ static func merge_tree(root: Node3D) -> void:
 		return
 
 	for shadow in groups:
-		var by_material: Dictionary = groups[shadow]
-		var combined := ArrayMesh.new()
-		var materials: Array = []
-		for material in by_material:
-			var tool := SurfaceTool.new()
-			tool.begin(Mesh.PRIMITIVE_TRIANGLES)
-			for pair in by_material[material]:
-				tool.append_from(pair[0], 0, pair[1])
-			tool.index()
-			tool.commit(combined)
-			materials.append(material)
-		if combined.get_surface_count() == 0:
+		var merged := _combine(groups[shadow], func(pair): return pair[0],
+			func(pair): return pair[1])
+		if merged == null:
 			continue
-		for i in materials.size():
-			combined.surface_set_material(i, materials[i])
-
-		var merged := MeshInstance3D.new()
 		merged.name = "MergedTree"
-		merged.mesh = combined
 		merged.cast_shadow = shadow
 		root.add_child(merged)
 

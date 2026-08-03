@@ -13,7 +13,7 @@ class_name Characters
 const ROSTER: Array[Dictionary] = [
 	{
 		"id": "jay", "name": "Jay",
-		"blurb": "AirPods in, cap down, entirely unbothered.",
+		"blurb": "AirPods in, cap down, bong in hand. Entirely unbothered.",
 		"female": false, "seated": false,
 		"skin": Color(0.72, 0.54, 0.40), "hair": Color(0.12, 0.10, 0.09),
 		"hair_style": "short", "shirt": Color(0.16, 0.18, 0.26), "pants": Color(0.20, 0.22, 0.30),

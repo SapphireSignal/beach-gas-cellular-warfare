@@ -94,6 +94,11 @@ func apply_all() -> void:
 	changed.emit()
 
 
+## Phones default to 60 — their panels are 60Hz anyway, and running flat out
+## cooks the battery on a device somebody has to work a shift with. This is the
+## only place the cap is set: main.gd used to force 60 on mobile at startup as
+## well, which quietly threw away a saved choice of 30 every time the game
+## launched.
 func apply_framerate() -> void:
 	Engine.max_fps = fps_cap()
 

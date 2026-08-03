@@ -31,9 +31,9 @@ color = Color(0.024, 0.028, 0.042, 0.66)
 anchor_left = 0.5
 anchor_right = 0.5
 offset_left = -450.0
-offset_top = 30.0
+offset_top = 26.0
 offset_right = 450.0
-offset_bottom = 100.0
+offset_bottom = 106.0
 grow_horizontal = 2
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.98, 0.96, 0.94, 1)
@@ -49,9 +49,9 @@ horizontal_alignment = 1
 anchor_left = 0.5
 anchor_right = 0.5
 offset_left = -450.0
-offset_top = 96.0
+offset_top = 116.0
 offset_right = 450.0
-offset_bottom = 124.0
+offset_bottom = 146.0
 grow_horizontal = 2
 mouse_filter = 2
 theme_override_colors/font_color = Color(1, 0.29, 0.34, 1)
@@ -65,9 +65,9 @@ horizontal_alignment = 1
 anchor_left = 0.5
 anchor_right = 0.5
 offset_left = -190.0
-offset_top = 128.0
+offset_top = 158.0
 offset_right = 190.0
-offset_bottom = 130.0
+offset_bottom = 160.0
 grow_horizontal = 2
 mouse_filter = 2
 color = Color(1, 0.29, 0.34, 0.45)
@@ -76,9 +76,9 @@ color = Color(1, 0.29, 0.34, 0.45)
 anchor_left = 0.5
 anchor_right = 0.5
 offset_left = -400.0
-offset_top = 136.0
+offset_top = 172.0
 offset_right = 400.0
-offset_bottom = 160.0
+offset_bottom = 198.0
 grow_horizontal = 2
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.78, 0.81, 0.9, 1)
@@ -91,12 +91,12 @@ horizontal_alignment = 1
 [node name="MainPanel" type="VBoxContainer" parent="."]
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -220.0
-offset_top = 194.0
-offset_right = 220.0
-offset_bottom = 574.0
+offset_left = -230.0
+offset_top = 232.0
+offset_right = 230.0
+offset_bottom = 616.0
 grow_horizontal = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 16
 
 [node name="PlayingAs" type="Label" parent="MainPanel"]
 layout_mode = 2
@@ -147,7 +147,7 @@ text = "SETTINGS"
 
 [node name="InfoRow" type="HBoxContainer" parent="MainPanel"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
 [node name="HowToBtn" type="Button" parent="MainPanel/InfoRow"]
 custom_minimum_size = Vector2(0, 42)
@@ -159,18 +159,24 @@ text = "HOW TO PLAY"
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "RECORDS"
+text = "LEADERBOARD"
+
+[node name="CareerBtn" type="Button" parent="MainPanel/InfoRow"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "CAREER"
 
 [node name="LeaderboardPanel" type="VBoxContainer" parent="."]
 visible = false
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -360.0
-offset_top = 146.0
-offset_right = 360.0
-offset_bottom = 606.0
+offset_left = -370.0
+offset_top = 96.0
+offset_right = 370.0
+offset_bottom = 612.0
 grow_horizontal = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 16
 
 [node name="LeaderboardTitle" type="Label" parent="LeaderboardPanel"]
 layout_mode = 2
@@ -178,8 +184,8 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 0.92)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 30
-text = "RECORDS"
+theme_override_font_sizes/font_size = 32
+text = "LEADERBOARD"
 horizontal_alignment = 1
 
 [node name="LeaderboardScroll" type="ScrollContainer" parent="LeaderboardPanel"]
@@ -190,9 +196,45 @@ horizontal_scroll_mode = 0
 [node name="LeaderboardList" type="VBoxContainer" parent="LeaderboardPanel/LeaderboardScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 4
+theme_override_constants/separation = 8
 
 [node name="LeaderboardBack" type="Button" parent="LeaderboardPanel"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "DONE"
+
+[node name="CareerPanel" type="VBoxContainer" parent="."]
+visible = false
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -370.0
+offset_top = 96.0
+offset_right = 370.0
+offset_bottom = 612.0
+grow_horizontal = 2
+theme_override_constants/separation = 16
+
+[node name="CareerTitle" type="Label" parent="CareerPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.92)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 32
+text = "CAREER"
+horizontal_alignment = 1
+
+[node name="CareerScroll" type="ScrollContainer" parent="CareerPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="CareerList" type="VBoxContainer" parent="CareerPanel/CareerScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="CareerBack" type="Button" parent="CareerPanel"]
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "DONE"
@@ -201,12 +243,12 @@ text = "DONE"
 visible = false
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -380.0
-offset_top = 146.0
-offset_right = 380.0
-offset_bottom = 606.0
+offset_left = -390.0
+offset_top = 96.0
+offset_right = 390.0
+offset_bottom = 612.0
 grow_horizontal = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 16
 
 [node name="HowToTitle" type="Label" parent="HowToPanel"]
 layout_mode = 2
@@ -214,7 +256,7 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 0.92)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 30
+theme_override_font_sizes/font_size = 32
 text = "HOW TO PLAY"
 horizontal_alignment = 1
 
@@ -226,7 +268,7 @@ horizontal_scroll_mode = 0
 [node name="HowToList" type="VBoxContainer" parent="HowToPanel/HowToScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 4
+theme_override_constants/separation = 6
 
 [node name="HowToBack" type="Button" parent="HowToPanel"]
 custom_minimum_size = Vector2(0, 50)
@@ -237,17 +279,27 @@ text = "GOT IT"
 visible = false
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -380.0
-offset_top = 148.0
-offset_right = 380.0
-offset_bottom = 604.0
+offset_left = -390.0
+offset_top = 96.0
+offset_right = 390.0
+offset_bottom = 612.0
 grow_horizontal = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 16
+
+[node name="CharacterTitle" type="Label" parent="CharacterPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.92)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 32
+text = "CHARACTER"
+horizontal_alignment = 1
 
 [node name="Columns" type="HBoxContainer" parent="CharacterPanel"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 18
+theme_override_constants/separation = 26
 
 [node name="Preview" type="SubViewportContainer" parent="CharacterPanel/Columns"]
 custom_minimum_size = Vector2(330, 0)
@@ -258,7 +310,7 @@ script = ExtResource("3_charselect")
 [node name="Right" type="VBoxContainer" parent="CharacterPanel/Columns"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 
 [node name="CharName" type="Label" parent="CharacterPanel/Columns/Right"]
 layout_mode = 2
@@ -270,7 +322,7 @@ theme_override_font_sizes/font_size = 34
 text = "Jay"
 
 [node name="CharBlurb" type="Label" parent="CharacterPanel/Columns/Right"]
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.68, 0.72, 0.84, 1)
@@ -279,8 +331,8 @@ autowrap_mode = 2
 
 [node name="CharGrid" type="GridContainer" parent="CharacterPanel/Columns/Right"]
 layout_mode = 2
-theme_override_constants/h_separation = 6
-theme_override_constants/v_separation = 6
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
 columns = 3
 
 [node name="CharDoneBtn" type="Button" parent="CharacterPanel"]
@@ -292,22 +344,32 @@ text = "DONE"
 visible = false
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -370.0
-offset_top = 150.0
-offset_right = 370.0
-offset_bottom = 604.0
+offset_left = -390.0
+offset_top = 96.0
+offset_right = 390.0
+offset_bottom = 612.0
 grow_horizontal = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 16
+
+[node name="SettingsTitle" type="Label" parent="SettingsPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.92)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 32
+text = "SETTINGS"
+horizontal_alignment = 1
 
 [node name="Columns" type="HBoxContainer" parent="SettingsPanel"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 26
+theme_override_constants/separation = 40
 
 [node name="Left" type="VBoxContainer" parent="SettingsPanel/Columns"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
+theme_override_constants/separation = 10
 
 [node name="GraphicsLabel" type="Label" parent="SettingsPanel/Columns/Left"]
 layout_mode = 2
@@ -373,7 +435,7 @@ step = 0.05
 [node name="Right" type="VBoxContainer" parent="SettingsPanel/Columns"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
+theme_override_constants/separation = 10
 
 [node name="FireLabel" type="Label" parent="SettingsPanel/Columns/Right"]
 layout_mode = 2
@@ -440,12 +502,22 @@ text = "DONE"
 visible = false
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -300.0
-offset_top = 168.0
-offset_right = 300.0
-offset_bottom = 560.0
+offset_left = -320.0
+offset_top = 96.0
+offset_right = 320.0
+offset_bottom = 612.0
 grow_horizontal = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 16
+
+[node name="CustomizeTitle" type="Label" parent="CustomizePanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.92)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 32
+text = "YOUR PHONE"
+horizontal_alignment = 1
 
 [node name="CaseHeader" type="Label" parent="CustomizePanel"]
 layout_mode = 2
@@ -456,8 +528,8 @@ text = "CASE     everyone sees this one"
 
 [node name="CaseGrid" type="GridContainer" parent="CustomizePanel"]
 layout_mode = 2
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 8
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
 columns = 4
 
 [node name="ThemeHeader" type="Label" parent="CustomizePanel"]
@@ -469,8 +541,8 @@ text = "PHONE THEME     your home screen, only you see it"
 
 [node name="ThemeGrid" type="GridContainer" parent="CustomizePanel"]
 layout_mode = 2
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 8
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
 columns = 3
 
 [node name="CustomizeNote" type="Label" parent="CustomizePanel"]
@@ -490,12 +562,22 @@ text = "DONE"
 visible = false
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -260.0
-offset_top = 176.0
-offset_right = 260.0
-offset_bottom = 520.0
+offset_left = -280.0
+offset_top = 96.0
+offset_right = 280.0
+offset_bottom = 560.0
 grow_horizontal = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 18
+
+[node name="BrowseTitle" type="Label" parent="BrowsePanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.92)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 32
+text = "JOIN A GAME"
+horizontal_alignment = 1
 
 [node name="ScanLabel" type="Label" parent="BrowsePanel"]
 layout_mode = 2
@@ -544,12 +626,12 @@ text = "BACK"
 visible = false
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -360.0
-offset_top = 160.0
-offset_right = 360.0
-offset_bottom = 600.0
+offset_left = -380.0
+offset_top = 110.0
+offset_right = 380.0
+offset_bottom = 612.0
 grow_horizontal = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 18
 
 [node name="CodeLabel" type="Label" parent="LobbyPanel"]
 layout_mode = 2
@@ -561,12 +643,13 @@ horizontal_alignment = 1
 
 [node name="Columns" type="HBoxContainer" parent="LobbyPanel"]
 layout_mode = 2
-theme_override_constants/separation = 20
+size_flags_vertical = 3
+theme_override_constants/separation = 34
 
 [node name="LeftCol" type="VBoxContainer" parent="LobbyPanel/Columns"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 
 [node name="PlayersHeader" type="Label" parent="LobbyPanel/Columns/LeftCol"]
 layout_mode = 2
@@ -583,7 +666,7 @@ theme_override_constants/separation = 6
 [node name="RightCol" type="VBoxContainer" parent="LobbyPanel/Columns"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 
 [node name="MapHeader" type="Label" parent="LobbyPanel/Columns/RightCol"]
 layout_mode = 2
@@ -657,12 +740,12 @@ horizontal_alignment = 2
 visible = false
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -340.0
-offset_top = 150.0
-offset_right = 340.0
-offset_bottom = 604.0
+offset_left = -360.0
+offset_top = 96.0
+offset_right = 360.0
+offset_bottom = 612.0
 grow_horizontal = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 16
 
 [node name="ChangelogTitle" type="Label" parent="ChangelogPanel"]
 layout_mode = 2
@@ -670,7 +753,7 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 0.9)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 30
+theme_override_font_sizes/font_size = 32
 text = "CHANGELOG"
 horizontal_alignment = 1
 
@@ -682,7 +765,7 @@ horizontal_scroll_mode = 0
 [node name="ChangelogList" type="VBoxContainer" parent="ChangelogPanel/ChangelogScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
+theme_override_constants/separation = 8
 
 [node name="ChangelogBack" type="Button" parent="ChangelogPanel"]
 custom_minimum_size = Vector2(0, 50)

@@ -580,6 +580,12 @@ func _build_viewmodel() -> void:
 
 	# Camera module on the back. The top lens is the emitter.
 	_vm_box(body, Vector3(-0.019, 0.0515, -0.0088), Vector3(0.0315, 0.0375, 0.0038), m_module)
+	# The emitter keeps its own pivot so the merge below leaves it alone: the
+	# muzzle flash is positioned from it, and a freed node would take the beam
+	# origin with it.
+	var lens_mount := Node3D.new()
+	lens_mount.name = "LensMount"
+	body.add_child(lens_mount)
 	var lenses := [
 		[Vector3(-0.0265, 0.0605, -0.0112), 0.0088, true],
 		[Vector3(-0.0112, 0.0605, -0.0112), 0.0076, false],
@@ -593,7 +599,8 @@ func _build_viewmodel() -> void:
 		if bool(lens[2]):
 			_emitter_mat = _viewmodel_mat(MODE_COLORS[MODE_ZAP], true)
 			_emitter_mat.emission_energy_multiplier = 2.2
-			_emitter = _vm_cylinder(body, at + Vector3(0, 0, -0.0022), r * 0.42, 0.0012, _emitter_mat)
+			_emitter = _vm_cylinder(lens_mount, at + Vector3(0, 0, -0.0022), r * 0.42,
+				0.0012, _emitter_mat)
 	_vm_box(body, Vector3(-0.0035, 0.0505, -0.0102), Vector3(0.0055, 0.0055, 0.0012),
 		_viewmodel_mat(Color(1.0, 0.94, 0.72), true))
 
@@ -604,6 +611,14 @@ func _build_viewmodel() -> void:
 
 	_build_hand(entry)
 	_build_muzzle()
+
+	# Roughly sixty mesh instances, none bigger than a fingernail, all of them on
+	# screen every frame of the match — it was the largest single block of draw
+	# calls in the game. Merging folds them to one draw per material.
+	#
+	# Order survives because the merge walks materials in first-use order and
+	# these all share `no_depth_test`, so what's drawn last still wins.
+	MeshMerge.merge_children(body)
 
 
 ## The home screen, facing you and nobody else. Status bar, app grid, dock.
@@ -653,6 +668,15 @@ func _build_screen(body: Node3D) -> void:
 	var step_x := 0.0152
 	var step_y := 0.0176
 
+	# One material per filler colour rather than one per tile. Thirteen tiles
+	# drawing from nine shared materials merges into nine surfaces instead of
+	# thirteen, and costs nothing to set up.
+	var filler_mats: Array[StandardMaterial3D] = []
+	for colour in filler:
+		var tile := _viewmodel_mat(colour.darkened(0.15), true)
+		tile.emission_energy_multiplier = 0.5
+		filler_mats.append(tile)
+
 	_app_mats.clear()
 	for row in 4:
 		for col in 4:
@@ -665,10 +689,8 @@ func _build_screen(body: Node3D) -> void:
 				_vm_box(body, at, Vector3(icon, icon, 0.0004), mat)
 				# A dot under the live one.
 				continue
-			var index := (row * 4 + col) % filler.size()
-			var tile := _viewmodel_mat(filler[index].darkened(0.15), true)
-			tile.emission_energy_multiplier = 0.5
-			_vm_box(body, at, Vector3(icon, icon, 0.0004), tile)
+			_vm_box(body, at, Vector3(icon, icon, 0.0004),
+				filler_mats[(row * 4 + col) % filler_mats.size()])
 
 	# Page dots.
 	for i in 3:
@@ -724,6 +746,9 @@ func _build_hand(entry: Dictionary) -> void:
 	# Thumb, on your side of the phone.
 	_vm_box(hand, Vector3(0.044, -0.006, 0.021), Vector3(0.032, 0.020, 0.024), m_skin, Vector3(0, 0, -34))
 	_vm_box(hand, Vector3(0.020, 0.017, 0.024), Vector3(0.027, 0.018, 0.021), m_skin, Vector3(0, 0, -56))
+
+	# Fourteen boxes, three materials, nothing here ever moves independently.
+	MeshMerge.merge_children(hand)
 
 
 ## Muzzle flash at the lens: a burst of sparks plus a light that dies almost

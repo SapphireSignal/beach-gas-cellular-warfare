@@ -18,6 +18,11 @@ const FRAMING := {
 	"daughter": {"distance": 3.4, "height": 1.4, "target": 0.95},
 	"mcdonalds": {"distance": 3.4, "height": 1.4, "target": 1.00},
 	"chair": {"distance": 3.2, "height": 1.3, "target": 0.85},
+	# These three have shopping on the floor beside them, which the default
+	# framing cropped straight off the edge of the disc.
+	"joint": {"distance": 3.4, "height": 1.4, "target": 0.95},
+	"music": {"distance": 3.5, "height": 1.45, "target": 1.00},
+	"monster": {"distance": 3.3, "height": 1.4, "target": 0.95},
 }
 const DEFAULT_FRAMING := {"distance": 2.9, "height": 1.35, "target": 1.05}
 

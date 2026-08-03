@@ -74,6 +74,9 @@ var _kill_name := ""
 var _scoreboard_pinned := false   ## tapped SCORE on touch
 var _scoreboard_held := false     ## holding Tab on desktop
 var _match_finished := false
+## Slowest frame in the last second, for the perf readout.
+var _worst_frame_ms := 0.0
+var _worst_window := 0.0
 
 
 func _ready() -> void:
@@ -162,6 +165,14 @@ func _acquire_player() -> void:
 
 
 func _tick_timers(delta: float) -> void:
+	# Worst frame over a rolling second, reset at the end of each window so a
+	# single bad frame doesn't sit on screen forever.
+	_worst_window += delta
+	_worst_frame_ms = maxf(_worst_frame_ms, delta * 1000.0)
+	if _worst_window >= 1.0:
+		_worst_window = 0.0
+		_worst_frame_ms = delta * 1000.0
+
 	_flash = maxf(0.0, _flash - delta * 2.6)
 	_hitmark = maxf(0.0, _hitmark - delta * 4.0)
 	_kill_flash = maxf(0.0, _kill_flash - delta * 0.62)
@@ -624,17 +635,34 @@ func _draw_bars() -> void:
 
 ## On screen so "it feels choppy" can be answered with a number instead of a
 ## guess. Green is smooth, amber is playable, red is a real problem.
+##
+## Two numbers, because one is misleading. The average settles at whatever cap
+## you picked and tells you nothing; the slowest frame in the last second is the
+## one you actually felt. A steady 60 with a 40ms spike every time you shoot
+## reads as "60 fps" on any normal counter, and reads as stuttering in the hand.
 func _draw_perf() -> void:
 	if not Settings.show_fps:
 		return
 	var fps := Engine.get_frames_per_second()
 	var color := Color(1.0, 0.45, 0.40, 0.9)
-	if fps >= 90:
+	if fps >= 55:
 		color = Color(0.45, 1.0, 0.60, 0.75)
-	elif fps >= 50:
+	elif fps >= 40:
 		color = Color(1.0, 0.85, 0.40, 0.85)
-	draw_string(ThemeDB.fallback_font, Vector2(24, 26 + (BAR_HEIGHT + 10) * 2 + 16),
-		"%d fps" % fps, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, color)
+
+	var at := Vector2(24, 26 + (BAR_HEIGHT + 10) * 2 + 16)
+	var font := ThemeDB.fallback_font
+	draw_string(font, at, "%d fps" % fps, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, color)
+
+	# Worst frame in the last second, in milliseconds. Anything over ~17ms is a
+	# frame you missed at 60.
+	var spike := Color(0.55, 0.60, 0.72, 0.75)
+	if _worst_frame_ms > 33.0:
+		spike = Color(1.0, 0.45, 0.40, 0.9)
+	elif _worst_frame_ms > 17.0:
+		spike = Color(1.0, 0.85, 0.40, 0.85)
+	draw_string(font, at + Vector2(58, 0), "worst %.0fms" % _worst_frame_ms,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 13, spike)
 
 
 func _bar(at: Vector2, ratio: float, color: Color, label: String) -> void:

@@ -7,9 +7,28 @@ class_name Changelog
 ## VERSION whenever you build for the phones — that's the number people will
 ## quote at you when something breaks.
 
-const VERSION := "1.1.0"
+const VERSION := "1.2.0"
 
 const ENTRIES: Array[Dictionary] = [
+	{
+		"version": "1.2.0",
+		"title": "Leaderboard, career, and a real optimisation pass",
+		"notes": [
+			"LEADERBOARD is now an actual leaderboard: all twelve characters ranked by kills, with the ones nobody has played yet greyed out at the bottom.",
+			"New CAREER button for your own numbers — kills, deaths, K/D, matches, best killstreak, best match, and who you actually play.",
+			"Every menu screen got its own heading and a lot more room. The tagline used to run straight into the top row of the settings panel, and CELLULAR WARFARE was printed over the bottom of BEACH GAS.",
+			"You now step over low kerbs, pump-island lips and the first tread of a ramp instead of stopping dead on them. Plant stalks no longer have an invisible collider in the middle of the forecourt.",
+			"Fixed: the positional sound pool was being deleted along with the level at the end of every match, so every shot after your first game threw errors instead of making a noise.",
+			"Fixed: changing any setting mid-match — even the volume — quietly dropped the lighting back to the old dim values, and switched shadows on inside the garage.",
+			"Fixed: a player dropping out while the level was still building left everybody standing in the dark, never spawned.",
+			"Fixed: bots stood perfectly still for anyone who joined a practice game.",
+			"Fixed: the frame rate limit you picked was ignored at startup on phones.",
+			"Halved the draw calls: 150 down to 89. The phone in your hand alone was sixty of them.",
+			"Impact sparks and hit flashes are pooled now, and static collision went from 267 separate bodies to 26 — both aimed squarely at stutter when you shoot.",
+			"Josh and Jay have their shop run at their feet, David has his stash, and Jay's blurb finally mentions the bong.",
+			"The FPS counter now shows the slowest frame in the last second next to the average, because that's the number you actually feel.",
+		],
+	},
 	{
 		"version": "1.1.0",
 		"title": "A second map, and knowing what you're doing",

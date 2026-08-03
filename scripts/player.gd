@@ -23,6 +23,15 @@ const GRAVITY := 20.0
 const JUMP_VELOCITY := 7.6
 const MAX_HEALTH := 100.0
 
+## Tallest thing you'll walk straight over. Set just above the awkward heights
+## on both maps — the 0.28 pump-island lip, the 0.18 dock treads, the 0.12 first
+## step of the garage ramp — and well under anything meant to be cover.
+const STEP_HEIGHT := 0.38
+const STEP_PROBE := 0.05
+## Keeps you glued to the ground walking *down* the same steps, instead of
+## launching off every one of them.
+const FLOOR_SNAP := 0.4
+
 # Getting called doesn't stun you outright. It makes you slow and clumsy and
 # takes your gun away until it stops ringing. There's no picking up — you just
 # have to live with it, and everyone can see that you're living with it.
@@ -138,6 +147,7 @@ func setup() -> void:
 	# The capsule is a sub-resource of the scene, so every player shares one
 	# instance. Without this copy, one person crouching would shrink everybody.
 	_collision.shape = _collision.shape.duplicate()
+	floor_snap_length = FLOOR_SNAP
 
 	_build_body()
 	camera.current = is_local
@@ -177,9 +187,12 @@ func _process(delta: float) -> void:
 	if is_local:
 		_apply_look(delta)
 		_update_camera(delta)
-	elif not is_bot:
-		# Bots are simulated here, not received, so they must not be smoothed
-		# toward a network position that nobody is sending.
+	elif not is_multiplayer_authority():
+		# Whoever holds authority simulates this body; everyone else smooths
+		# toward what they're told. Testing `is_bot` here instead meant a bot was
+		# never interpolated on a *guest's* machine either — where nobody is
+		# simulating it — so anyone joining a practice game watched it stand
+		# perfectly still.
 		_interpolate_remote(delta)
 		_remote_ring_feedback(delta)
 	_update_crouch(delta)
@@ -381,7 +394,9 @@ func _move(delta: float) -> void:
 	velocity.z = move_toward(velocity.z, wish.z, a * delta * 4.0)
 
 	_fall_speed = velocity.y
+	var before := global_position
 	move_and_slide()
+	_step_over(before, delta)
 
 	# Landing dip, scaled by how hard you came down.
 	var grounded := is_on_floor()
@@ -395,6 +410,51 @@ func _move(delta: float) -> void:
 	if global_position.y < -12.0:
 		global_position = Vector3(0, 2, 8)
 		velocity = Vector3.ZERO
+
+
+## Walk over small obstacles instead of stopping dead against them.
+##
+## CharacterBody3D has no step logic of its own, so the lip of a pump island,
+## the first tread of the loading ramp and a painted kerb all stopped you like a
+## wall — and because most of them are ankle height, it read as the level being
+## sticky rather than as an obstacle.
+##
+## The probe is the usual up / forward / down: only if all three succeed and the
+## thing underneath is flat enough to stand on does the move get taken. Costs
+## three shape casts, and only on a frame where something actually blocked you.
+func _step_over(before: Vector3, delta: float) -> void:
+	if not is_on_floor():
+		return
+
+	var wanted := Vector3(velocity.x, 0.0, velocity.z) * delta
+	if wanted.length() < 0.0005:
+		return
+	var achieved := global_position - before
+	achieved.y = 0.0
+	if achieved.length() >= wanted.length() * 0.7:
+		return   # we got where we were going; nothing to climb
+
+	var upright := global_transform.basis
+	var foot := Transform3D(upright, before)
+	var lift := Vector3.UP * STEP_HEIGHT
+
+	# Room to rise, and room to cross once raised. Either failing means this is
+	# a real wall, not a step.
+	if test_move(foot, lift):
+		return
+	var raised := Transform3D(upright, before + lift)
+	if test_move(raised, wanted):
+		return
+
+	# Something to land on, close enough below to count as a step.
+	var landing := Transform3D(upright, raised.origin + wanted)
+	var touchdown := KinematicCollision3D.new()
+	if not test_move(landing, Vector3.DOWN * (STEP_HEIGHT + STEP_PROBE), touchdown):
+		return   # open air on the far side — that's a ledge, and you may not cross it
+	if touchdown.get_normal().angle_to(Vector3.UP) > floor_max_angle:
+		return   # too steep to stand on
+
+	global_position = landing.origin + touchdown.get_travel()
 
 
 func horizontal_speed() -> float:

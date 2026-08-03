@@ -25,9 +25,14 @@ const SURFACES := {
 }
 
 
+## How many bursts and flashes are kept alive per world. Eight players firing
+## every fifth of a second never has more than a handful in the air at once.
+const POOL := 10
+
+
 static func impact(parent: Node3D, at: Vector3, normal: Vector3, surface: String,
 		hit_player: bool) -> void:
-	if parent == null:
+	if not is_instance_valid(parent):
 		return
 	var style := "flesh" if hit_player else str(SURFACES.get(surface, "dust"))
 	var look := _style(style)
@@ -37,20 +42,14 @@ static func impact(parent: Node3D, at: Vector3, normal: Vector3, surface: String
 	# Only the spray direction changes per hit; everything else is shared.
 	process.direction = normal if normal.length_squared() > 0.01 else Vector3.UP
 
-	var burst := GPUParticles3D.new()
+	var burst := _take(parent, "Bursts", POOL, _make_burst)
+	if burst == null:
+		return
 	burst.draw_pass_1 = assets["quad"]
 	burst.process_material = process
 	burst.amount = mini(int(look["count"]), MAX_PARTICLES)
-	burst.lifetime = LIFETIME
-	burst.one_shot = true
-	burst.explosiveness = 1.0
-	burst.local_coords = false
-	parent.add_child(burst)
 	burst.global_position = at
 	burst.restart()
-
-	# Free once the last particle is gone; nothing here needs to outlive that.
-	burst.get_tree().create_timer(LIFETIME + 0.2).timeout.connect(burst.queue_free)
 
 	_flash(parent, at, look["hot"], hit_player)
 
@@ -58,16 +57,68 @@ static func impact(parent: Node3D, at: Vector3, normal: Vector3, surface: String
 ## A brief bright point at the contact, so a hit registers even at a distance
 ## where individual particles are a couple of pixels.
 static func _flash(parent: Node3D, at: Vector3, color: Color, hit_player: bool) -> void:
-	# The mesh is cached per size; only the material is per-flash, because the
-	# tween animates its alpha. Building a QuadMesh per hit was pointless churn.
+	var flash := _take(parent, "Flashes", POOL, _make_flash)
+	if flash == null:
+		return
+	var mat: StandardMaterial3D = flash.material_override
+	mat.albedo_color = Color(color.r, color.g, color.b, 0.95)
+	flash.mesh = _flash_mesh(hit_player)
+	flash.global_position = at
+	flash.scale = Vector3.ONE * 0.5
+	flash.visible = true
+
+	var tween := flash.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(flash, "scale", Vector3.ONE * 1.6, 0.13)
+	tween.tween_property(mat, "albedo_color:a", 0.0, 0.13)
+	tween.chain().tween_callback(func(): flash.visible = false)
+
+
+static func _flash_mesh(hit_player: bool) -> QuadMesh:
 	var key := "flash_%s" % ("player" if hit_player else "world")
 	if not _cache.has(key):
 		var shared := QuadMesh.new()
 		shared.size = Vector2(0.34, 0.34) if hit_player else Vector2(0.22, 0.22)
 		_cache[key] = shared
+	return _cache[key]
 
+
+## Next node from a ring buffer of reusable effect nodes, built once per world.
+##
+## These used to be created and freed per shot. A GPUParticles3D in particular
+## is not a cheap node to build — it allocates its own GPU buffers — and doing
+## that on every trigger pull is exactly the kind of cost that shows up as a
+## stutter when you shoot rather than as a lower framerate.
+##
+## The pool hangs off the world, so it dies with the level and there's nothing
+## to clean up by hand.
+static func _take(parent: Node3D, group: String, size: int, make: Callable) -> Node3D:
+	var root := parent.get_node_or_null(group)
+	if root == null:
+		root = Node3D.new()
+		root.name = group
+		parent.add_child(root)
+	var index := int(root.get_meta("next", 0))
+	root.set_meta("next", (index + 1) % size)
+	if index < root.get_child_count():
+		return root.get_child(index)
+	var made: Node3D = make.call()
+	root.add_child(made)
+	return made
+
+
+static func _make_burst() -> Node3D:
+	var burst := GPUParticles3D.new()
+	burst.lifetime = LIFETIME
+	burst.one_shot = true
+	burst.explosiveness = 1.0
+	burst.emitting = false
+	burst.local_coords = false
+	return burst
+
+
+static func _make_flash() -> Node3D:
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(color.r, color.g, color.b, 0.95)
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
@@ -75,18 +126,10 @@ static func _flash(parent: Node3D, at: Vector3, color: Color, hit_player: bool) 
 	mat.disable_receive_shadows = true
 
 	var flash := MeshInstance3D.new()
-	flash.mesh = _cache[key]
 	flash.material_override = mat
 	flash.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(flash)
-	flash.global_position = at
-	flash.scale = Vector3.ONE * 0.5
-
-	var tween := flash.create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(flash, "scale", Vector3.ONE * 1.6, 0.13)
-	tween.tween_property(mat, "albedo_color:a", 0.0, 0.13)
-	tween.chain().tween_callback(flash.queue_free)
+	flash.visible = false
+	return flash
 
 
 static func _assets(style: String, look: Dictionary) -> Dictionary:

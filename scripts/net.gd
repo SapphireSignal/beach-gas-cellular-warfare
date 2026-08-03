@@ -11,9 +11,19 @@ extends Node
 ##   - Damage, kills, respawns and the score are host authoritative. Clients
 ##     *report* hits, the host decides whether they count.
 
-const PORT := 27015
-const DISCOVERY_PORT := 27016
+const DEFAULT_PORT := 27015
 const DISCOVERY_MAGIC := "LENSLETHAL1"
+
+## Overridable with `--port=` so a test run can never collide with a game that's
+## already hosting on this machine — which silently broke every headless check
+## once, because the failure looked identical to a clean exit.
+static var PORT := DEFAULT_PORT
+static var DISCOVERY_PORT := DEFAULT_PORT + 1
+
+
+static func use_port(value: int) -> void:
+	PORT = value
+	DISCOVERY_PORT = value + 1
 
 ## Bump this whenever anything about the network conversation changes — an RPC
 ## signature, a packed flag, a field in the lobby record. Mixed versions produce
@@ -72,6 +82,9 @@ var found_hosts: Dictionary = {}
 var _connected := false
 var _ready_peers := {}
 var _last_hit_ms := {}
+## Set once the host has issued the spawn burst for this match, so a late
+## report or a disconnect can't fire a second round of spawns.
+var _spawned := false
 
 var _broadcaster: PacketPeerUDP = null
 var _broadcast_targets: PackedStringArray = []
@@ -200,6 +213,7 @@ func _teardown() -> void:
 	players.clear()
 	_ready_peers.clear()
 	_last_hit_ms.clear()
+	_spawned = false
 	world = null
 
 
@@ -230,6 +244,7 @@ func _on_peer_disconnected(id: int) -> void:
 	var who: String = players.get(id, {}).get("name", "Someone")
 	players.erase(id)
 	_ready_peers.erase(id)
+	_last_hit_ms.erase(id)
 	_sync_lobby.rpc(players)
 	_feed.rpc("%s left" % who)
 	if in_match:
@@ -239,6 +254,9 @@ func _on_peer_disconnected(id: int) -> void:
 		if players.size() < 2:
 			in_match = false
 			_finish.rpc(-1)
+			return
+		# They may have been the one everybody else was still waiting on.
+		_spawn_everyone_if_ready()
 
 
 @rpc("any_peer", "reliable")
@@ -465,6 +483,8 @@ func begin_match() -> void:
 		players[id]["deaths"] = 0
 		players[id]["health"] = 100.0
 	_ready_peers.clear()
+	_last_hit_ms.clear()
+	_spawned = false
 	_stop_beacon()  # Lobby is closed once the round is live.
 	_start_match.rpc(players, selected_map)
 
@@ -487,9 +507,22 @@ func _world_ready() -> void:
 	if not multiplayer.is_server():
 		return
 	_ready_peers[_sender()] = true
+	_spawn_everyone_if_ready()
+
+
+## Spawns once every real peer has reported its level built.
+##
+## Also re-checked when somebody disconnects: the count used to be tested only on
+## the way in, so a peer dropping between "match started" and "world ready" left
+## the gate permanently one report short and *nobody* ever spawned. On a phone
+## that loses WiFi while the level builds, that's a plausible way to lose a game.
+func _spawn_everyone_if_ready() -> void:
+	if not multiplayer.is_server() or not in_match or _spawned:
+		return
 	# Bots have no device to report in, so only real peers are counted.
 	if _ready_peers.size() < players.size() - bot_count():
 		return
+	_spawned = true
 	var index := 0
 	for id in players:
 		_spawn.rpc(int(id), index)

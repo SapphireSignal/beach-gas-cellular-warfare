@@ -37,17 +37,37 @@ func kd() -> float:
 	return float(kills) if deaths == 0 else float(kills) / float(deaths)
 
 
-## Characters you've actually played, best first. The list is built from the
-## record rather than the roster, so it only shows people you've used.
-func character_ranking() -> Array:
+## Every character on the roster, ranked by kills.
+##
+## The whole roster rather than only the ones you've picked: a leaderboard with
+## three names on it isn't a leaderboard, and the empty rows are the point —
+## they're what makes you go and play as somebody else.
+##
+## Ties break on fewer deaths, then on roster order, so the table never
+## reshuffles between two characters that haven't done anything yet.
+func leaderboard() -> Array:
 	var rows := []
-	for index in by_character:
-		var row: Dictionary = by_character[index].duplicate()
-		row["character"] = int(index)
-		row["name"] = Characters.display_name(int(index))
-		rows.append(row)
-	rows.sort_custom(func(a, b): return int(a["kills"]) > int(b["kills"]))
+	for index in Characters.count():
+		var record: Dictionary = by_character.get(index, {})
+		rows.append({
+			"character": index,
+			"name": Characters.display_name(index),
+			"kills": int(record.get("kills", 0)),
+			"deaths": int(record.get("deaths", 0)),
+		})
+	rows.sort_custom(func(a, b):
+		if int(a["kills"]) != int(b["kills"]):
+			return int(a["kills"]) > int(b["kills"])
+		if int(a["deaths"]) != int(b["deaths"]):
+			return int(a["deaths"]) < int(b["deaths"])
+		return int(a["character"]) < int(b["character"]))
 	return rows
+
+
+## True once anybody has done anything at all, so the leaderboard can say
+## "nobody has done anything yet" instead of showing twelve rows of zeroes.
+func has_history() -> bool:
+	return kills > 0 or deaths > 0 or matches > 0
 
 
 # ---------------------------------------------------------------------------

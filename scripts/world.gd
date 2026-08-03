@@ -45,12 +45,16 @@ const SPAWNS: Array[Vector3] = [
 ## Set before adding to the tree to build the level for looking at only — the
 ## menu backdrop doesn't need several hundred collision bodies.
 var decorative := false
+## Set by main.gd on `--audit` to print this level's scene and render cost.
+var audit := false
 
 var _mats: Dictionary = {}
 var _env: Environment
 var _sun: DirectionalLight3D
 ## Vehicle roots, merged separately so each stays one movable object.
 var _merge_roots: Array[Node3D] = []
+## Surface key -> the one StaticBody3D holding every shape of that material.
+var _bodies: Dictionary = {}
 
 
 func _ready() -> void:
@@ -60,6 +64,87 @@ func _ready() -> void:
 	_collapse_geometry()
 	if wants_traffic():
 		_start_traffic()
+	if audit:
+		_report_budget()
+
+
+## Scene and render cost for this level, printed on `--audit`.
+##
+## This game can't be profiled where it actually runs — the phones are borrowed
+## and a build lasts a week — so the numbers that decide whether something is
+## affordable have to come from here. Counting the tree is only half of it; the
+## render monitors are sampled after a few seconds of real frames, because what
+## matters is what survives culling, not what was built.
+func _report_budget() -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame       # let the merge's queue_free land
+	_count_tree()
+
+	# Average framerate hides exactly the thing people actually feel. A shot that
+	# costs one 40ms frame is invisible in an average and obvious in the hand, so
+	# what gets reported is the worst frame and how many ran long.
+	#
+	# The cap and vsync come off first: with either on, every measurement is just
+	# the refresh rate and a real 20ms frame is indistinguishable from an idle one.
+	var was_cap := Engine.max_fps
+	Engine.max_fps = 0
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+
+	var worst := 0.0
+	var total := 0.0
+	var janky := 0
+	var frames := 900
+	for _i in frames:
+		await get_tree().process_frame
+		var ms := get_process_delta_time() * 1000.0
+		total += ms
+		worst = maxf(worst, ms)
+		if ms > 16.7:
+			janky += 1
+	Engine.max_fps = was_cap
+	print("AUDIT %s | drawn | draw_calls=%d objects=%d primitives=%d" % [
+		name,
+		Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+		Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME),
+		Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)])
+	print("AUDIT %s | frames | avg=%.2fms worst=%.2fms over16ms=%d/%d" % [
+		name, total / float(frames), worst, janky, frames])
+
+	# Whether anybody is standing on anything. Collision is built separately from
+	# the meshes, so the level can look perfectly correct and still be a hole —
+	# and a headless run has no other way to notice.
+	for body in all_players():
+		print("AUDIT %s | %s | y=%.2f grounded=%s" % [
+			name, body.name, body.global_position.y, body.is_on_floor()])
+
+
+func _count_tree() -> void:
+	var meshes := 0
+	var surfaces := 0
+	var bodies := 0
+	var shapes := 0
+	var omni := 0
+	var total := 0
+	var stack: Array = [self]
+	while not stack.is_empty():
+		var node: Node = stack.pop_back()
+		total += 1
+		if node is MeshInstance3D:
+			meshes += 1
+			var mesh: Mesh = (node as MeshInstance3D).mesh
+			if mesh != null:
+				surfaces += mesh.get_surface_count()
+		elif node is StaticBody3D: bodies += 1
+		elif node is CollisionShape3D: shapes += 1
+		elif node is OmniLight3D: omni += 1
+		for child in node.get_children():
+			stack.append(child)
+	# Anything past eight omni lights is invisible to any single object on the
+	# Mobile renderer, so it's worth saying out loud rather than wondering later
+	# why a lamp doesn't light the ground under it.
+	print("AUDIT %s | built | nodes=%d meshes=%d surfaces=%d bodies=%d shapes=%d omni=%d%s"
+		% [name, total, meshes, surfaces, bodies, shapes, omni,
+			"  <-- over the mobile 8-light cap" if omni > 8 else ""])
 
 
 ## What this map is made of. Overridden by each map script; everything above and
@@ -230,7 +315,7 @@ func _build_environment() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	# Lifted from 0.75: the lot edges were dark enough to lose people in, which
 	# on a phone screen in a bright room is worse than it looks here.
-	env.ambient_light_energy = 1.05
+	env.ambient_light_energy = _ambient_for(Settings.shadows_enabled())
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.tonemap_white = 3.0
 
@@ -272,11 +357,9 @@ func _build_environment() -> void:
 	# Real-time shadow mapping is the single most expensive thing here. Phones
 	# never get it, and Low turns it off everywhere; both compensate with
 	# brighter ambient, which is also far more readable on a small screen.
-	sun.shadow_enabled = Settings.shadows_enabled()
+	sun.shadow_enabled = _wants_sun_shadows()
 	sun.directional_shadow_max_distance = Settings.shadow_distance()
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
-	if not sun.shadow_enabled:
-		env.ambient_light_energy = 1.20
 	add_child(sun)
 
 	_env = env
@@ -284,14 +367,30 @@ func _build_environment() -> void:
 	Settings.changed.connect(_apply_quality)
 
 
+## Ambient for this map at a given shadow setting.
+##
+## One function so the initial build and the live quality change can never
+## disagree — they did, and touching *any* setting mid-match (even a volume
+## slider) dropped the lot straight back to the dim values the comment above
+## says were deliberately raised.
+func _ambient_for(shadows: bool) -> float:
+	return 1.05 if shadows else 1.20
+
+
+## Whether this map's key light may cast shadows at all. Overridden by the
+## indoor map, which has no sun to speak of and must never be given one.
+func _wants_sun_shadows() -> bool:
+	return Settings.shadows_enabled()
+
+
 ## Live quality changes, so leaving the settings screen doesn't need a rebuild.
 func _apply_quality() -> void:
 	if _env == null or _sun == null:
 		return
 	_env.glow_enabled = Settings.glow_enabled()
-	_sun.shadow_enabled = Settings.shadows_enabled()
+	_sun.shadow_enabled = _wants_sun_shadows()
 	_sun.directional_shadow_max_distance = Settings.shadow_distance()
-	_env.ambient_light_energy = 0.75 if _sun.shadow_enabled else 0.95
+	_env.ambient_light_energy = _ambient_for(_sun.shadow_enabled)
 
 
 # ---------------------------------------------------------------------------
@@ -773,7 +872,10 @@ func _plant(pos: Vector3, plant_scale: float) -> void:
 
 	_local_cylinder(root, Vector3(0, 0.16, 0), 0.20, 0.32, _mats["pot"])
 	_local_cylinder(root, Vector3(0, 0.33, 0), 0.21, 0.05, _mats["pot"])
-	_local_box(root, Vector3(0, 0.62, 0), Vector3(0.05, 0.62, 0.05), _mats["plant"])
+	# The stalk is a 5cm stick. Giving it a collider meant an invisible post you
+	# could walk into in the middle of the forecourt — and since the pot itself
+	# never collided, there was nothing there to explain why you'd stopped.
+	_local_box(root, Vector3(0, 0.62, 0), Vector3(0.05, 0.62, 0.05), _mats["plant"], false)
 	_merge_roots.append(root)
 
 	for tier in 3:
@@ -801,12 +903,11 @@ func _leaf(parent: Node3D, size: float, pale: bool) -> void:
 		m.mesh = mesh
 		m.material_override = mat
 		m.position = Vector3(0, 0, -length * 0.5)
-		m.rotation_degrees = Vector3(0, t * 52.0, 0)
 		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# The fan angle lives on the pivot, not the leaflet.
 		var pivot := Node3D.new()
 		pivot.rotation_degrees.y = t * 52.0
 		parent.add_child(pivot)
-		m.rotation_degrees = Vector3.ZERO
 		pivot.add_child(m)
 
 
@@ -968,19 +1069,34 @@ func _box(pos: Vector3, size: Vector3, mat_key: String, collide := true) -> Mesh
 	add_child(m)
 
 	if collide and not decorative:
-		var body := StaticBody3D.new()
-		body.collision_layer = 1
-		body.collision_mask = 0
-		# Lets a laser hit know whether it just struck a fuel pump or a hedge.
-		body.set_meta("surface", mat_key)
 		var shape := CollisionShape3D.new()
 		var box := BoxShape3D.new()
 		box.size = size
 		shape.shape = box
-		body.add_child(shape)
-		body.position = pos
-		add_child(body)
+		shape.position = pos
+		_surface_body(mat_key).add_child(shape)
 	return m
+
+
+## One static body per surface type, holding every shape of that material.
+##
+## The level used to make a StaticBody3D *per box* — 267 of them on the
+## forecourt, 301 in the garage, each its own node and its own entry in the
+## physics broadphase, for geometry that never moves. Grouping by material
+## collapses that to about fifteen bodies and keeps the one thing the split was
+## buying: `surface` metadata, so a laser hit still knows whether it struck a
+## fuel pump or a hedge.
+func _surface_body(mat_key: String) -> StaticBody3D:
+	if _bodies.has(mat_key):
+		return _bodies[mat_key]
+	var body := StaticBody3D.new()
+	body.name = "Collision_%s" % mat_key
+	body.collision_layer = 1
+	body.collision_mask = 0
+	body.set_meta("surface", mat_key)
+	add_child(body)
+	_bodies[mat_key] = body
+	return body
 
 
 ## Ground decal: a flat plane, no collision, no shadow. Used for paint and
@@ -999,7 +1115,8 @@ func _flat(pos: Vector3, size: Vector2, mat_key: String) -> MeshInstance3D:
 
 ## Mesh parented to a vehicle root, with a matching collider so you can hide
 ## behind it and stand on it.
-func _local_box(root: Node3D, pos: Vector3, size: Vector3, mat: Material) -> MeshInstance3D:
+func _local_box(root: Node3D, pos: Vector3, size: Vector3, mat: Material,
+		collide := true) -> MeshInstance3D:
 	var m := MeshInstance3D.new()
 	var mesh := BoxMesh.new()
 	mesh.size = size
@@ -1008,19 +1125,29 @@ func _local_box(root: Node3D, pos: Vector3, size: Vector3, mat: Material) -> Mes
 	m.position = pos
 	root.add_child(m)
 
-	if not decorative:
-		var body := StaticBody3D.new()
-		body.collision_layer = 1
-		body.collision_mask = 0
-		body.set_meta("surface", "metal")
+	if collide and not decorative:
 		var shape := CollisionShape3D.new()
 		var box := BoxShape3D.new()
 		box.size = size
 		shape.shape = box
-		body.add_child(shape)
-		body.position = pos
-		root.add_child(body)
+		shape.position = pos
+		_vehicle_body(root).add_child(shape)
 	return m
+
+
+## Vehicles get one body each rather than one per panel. A car was fourteen
+## separate static bodies, and the garage parks fourteen cars.
+func _vehicle_body(root: Node3D) -> StaticBody3D:
+	var existing := root.get_node_or_null("Collision")
+	if existing != null:
+		return existing as StaticBody3D
+	var body := StaticBody3D.new()
+	body.name = "Collision"
+	body.collision_layer = 1
+	body.collision_mask = 0
+	body.set_meta("surface", "metal")
+	root.add_child(body)
+	return body
 
 
 func _local_cylinder(root: Node3D, pos: Vector3, radius: float, height: float,

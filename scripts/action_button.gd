@@ -24,6 +24,12 @@ var dim := false
 
 var radius := 60.0
 
+## What the last _draw() was built from. Redrawing a canvas item costs the same
+## whether anything changed or not, and there are seven of these — so they only
+## rebuild when they'd actually look different. Idle, that's zero work a frame
+## instead of seven full redraws.
+var _drawn: Array = []
+
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -33,6 +39,7 @@ func _ready() -> void:
 
 func _recalc() -> void:
 	radius = minf(size.x, size.y) * 0.5
+	queue_redraw()
 
 
 func contains_point(point: Vector2) -> bool:
@@ -42,6 +49,13 @@ func contains_point(point: Vector2) -> bool:
 
 
 func _process(_delta: float) -> void:
+	# Cooldown seconds are quantised to the tenth that actually gets printed, so
+	# a button counting down redraws ten times a second rather than sixty.
+	var now := [label, sublabel, enabled, held, dim,
+		roundi(cooldown * 120.0), roundi(cooldown_seconds * 10.0)]
+	if now == _drawn:
+		return
+	_drawn = now
 	queue_redraw()
 
 

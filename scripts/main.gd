@@ -16,6 +16,11 @@ var backdrop: Node3D = null
 
 
 var _autostart := false
+## True for a scripted run (--practice / --autohost / --autojoin). Network
+## errors are fatal in that mode so a headless check can't pass by accident.
+var _driven_from_cli := false
+## `--audit`: print what the level costs to build and to draw.
+var _audit := false
 
 
 func _ready() -> void:
@@ -24,15 +29,8 @@ func _ready() -> void:
 	Net.net_error.connect(_on_net_error)
 	Net.left_match.connect(_on_left_match)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	_apply_frame_cap()
 	_start_backdrop()
 	_handle_command_line()
-
-
-## Phones get 60: their panels are 60Hz anyway, and running flat out would cook
-## the battery on a device somebody has to work a shift with.
-func _apply_frame_cap() -> void:
-	Engine.max_fps = 60 if OS.has_feature("mobile") else 240
 
 
 func _process(_delta: float) -> void:
@@ -62,16 +60,27 @@ func _stop_backdrop() -> void:
 ##   LensLethal.exe -- --autohost --name=Host
 ##   LensLethal.exe -- --autojoin=127.0.0.1 --name=Guest
 ##   LensLethal.exe -- --practice --name=Me
+##   LensLethal.exe -- --practice --port=27100     (avoid a port already in use)
 ## The host starts the match by itself as soon as somebody joins.
+##
+## A command-line session that can't start quits with a failing exit code. It
+## used to return 0 whichever way it went, so a headless check stayed green
+## while the game never got past "couldn't open the port" — the one thing those
+## checks exist to catch.
 func _handle_command_line() -> void:
 	var args := OS.get_cmdline_user_args()
 	var who := "Player"
 	var join_target := ""
+	_audit = "--audit" in args
 	for a in args:
 		if a.begins_with("--name="):
 			who = a.substr(7)
 		elif a.begins_with("--autojoin="):
 			join_target = a.substr(11)
+		elif a.begins_with("--port="):
+			var port := a.substr(7)
+			if port.is_valid_int():
+				Net.use_port(int(port))
 		elif a.begins_with("--map="):
 			# Jump straight onto a given map, for testing one without clicking
 			# through the lobby.
@@ -80,13 +89,33 @@ func _handle_command_line() -> void:
 				Net.selected_map = id
 
 	if "--practice" in args:
-		Net.start_practice(who, 1)
-	elif "--autohost" in args:
+		# The menu's practice button drops you in the lobby so you still get the
+		# map picker. From the command line there's nobody to press start, so the
+		# flag goes all the way into the match — that's the whole point of it,
+		# and it's what makes the headless check actually exercise a level.
+		_driven_from_cli = true
 		_autostart = true
 		Net.lobby_changed.connect(_maybe_autostart)
-		Net.host_game(who)
+		if not Net.start_practice(who, 1):
+			_fail("--practice could not start a local game")
+	elif "--autohost" in args:
+		_driven_from_cli = true
+		_autostart = true
+		Net.lobby_changed.connect(_maybe_autostart)
+		if not Net.host_game(who):
+			_fail("--autohost could not open the port")
 	elif not join_target.is_empty():
-		Net.join_game(who, join_target)
+		_driven_from_cli = true
+		if not Net.join_game(who, join_target):
+			_fail("--autojoin could not reach %s" % join_target)
+
+
+## Anything that goes wrong during a scripted run has to be loud and has to
+## fail the process, or the checks are theatre.
+func _fail(reason: String) -> void:
+	push_error("startup failed: %s" % reason)
+	printerr("startup failed: %s" % reason)
+	get_tree().quit(1)
 
 
 func _maybe_autostart() -> void:
@@ -103,6 +132,7 @@ func _on_match_started() -> void:
 	# Whichever map the host picked. Net.selected_map is already synced to
 	# everyone by the time the match starts.
 	world = load(Maps.scene_path(Net.selected_map)).instantiate()
+	world.audit = _audit
 	game_root.add_child(world)
 	Net.world = world
 
@@ -119,7 +149,10 @@ func _on_match_over(_winner_id: int) -> void:
 	_back_to_menu()
 
 
-func _on_net_error(_msg: String) -> void:
+func _on_net_error(msg: String) -> void:
+	if _driven_from_cli:
+		_fail(msg)
+		return
 	if Net.in_match or world != null:
 		_back_to_menu()
 
@@ -144,6 +177,9 @@ func _back_to_menu() -> void:
 
 func _teardown_match() -> void:
 	if world != null:
+		# Before the world goes: the positional voices are parented inside it
+		# while they play, and freeing the level would take the whole pool.
+		Sfx.release_voices()
 		world.queue_free()
 		world = null
 	if hud != null:

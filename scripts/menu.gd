@@ -11,6 +11,8 @@ extends Control
 
 @onready var cut: ColorRect = $Cut
 @onready var title: Label = $Title
+@onready var subtitle: Label = $Subtitle
+@onready var title_rule: ColorRect = $TitleRule
 @onready var tagline: Label = $Tagline
 @onready var main_panel: VBoxContainer = $MainPanel
 @onready var browse_panel: VBoxContainer = $BrowsePanel
@@ -63,6 +65,10 @@ extends Control
 @onready var leaderboard_panel: VBoxContainer = $LeaderboardPanel
 @onready var leaderboard_list: VBoxContainer = $LeaderboardPanel/LeaderboardScroll/LeaderboardList
 @onready var leaderboard_back: Button = $LeaderboardPanel/LeaderboardBack
+@onready var career_btn: Button = $MainPanel/InfoRow/CareerBtn
+@onready var career_panel: VBoxContainer = $CareerPanel
+@onready var career_list: VBoxContainer = $CareerPanel/CareerScroll/CareerList
+@onready var career_back: Button = $CareerPanel/CareerBack
 @onready var how_to_panel: VBoxContainer = $HowToPanel
 @onready var how_to_list: VBoxContainer = $HowToPanel/HowToScroll/HowToList
 @onready var how_to_back: Button = $HowToPanel/HowToBack
@@ -101,6 +107,8 @@ func _ready() -> void:
 	_style(how_to_back, Color(0.30, 0.95, 0.55))
 	_style(leaderboard_btn, Color(1.0, 0.78, 0.30))
 	_style(leaderboard_back, Color(0.30, 0.95, 0.55))
+	_style(career_btn, Color(0.72, 0.58, 1.00))
+	_style(career_back, Color(0.30, 0.95, 0.55))
 	version_label.text = "v%s" % Changelog.VERSION
 
 	host_btn.pressed.connect(_on_host)
@@ -116,8 +124,10 @@ func _ready() -> void:
 	changelog_back.pressed.connect(func(): _go("main"))
 	how_to_btn.pressed.connect(func(): _go("howto"))
 	how_to_back.pressed.connect(func(): _go("main"))
-	leaderboard_btn.pressed.connect(func(): _go("records"))
+	leaderboard_btn.pressed.connect(func(): _go("leaderboard"))
 	leaderboard_back.pressed.connect(func(): _go("main"))
+	career_btn.pressed.connect(func(): _go("career"))
+	career_back.pressed.connect(func(): _go("main"))
 	show_fps_btn.pressed.connect(_toggle_fps_counter)
 	aim_assist_btn.pressed.connect(_toggle_aim_assist)
 	master_slider.value_changed.connect(func(v): Settings.master_volume = v; Settings.apply_audio())
@@ -149,6 +159,45 @@ func _ready() -> void:
 		Loadout.seen_how_to = true
 		Loadout.save()
 		_go("howto")
+
+	if "--tour" in OS.get_cmdline_user_args():
+		_tour_panels()
+
+
+## Open every panel and build every character, for `--tour`.
+##
+## Half of this menu is built in code the moment a panel opens, and every
+## character's props are built the moment you select them — so a plain launch
+## proves nothing about the other eight screens or the other eleven people. Any
+## of them could be broken for a week and a headless check would still pass.
+## Add `--shots` to write a PNG of each one to user://.
+func _tour_panels() -> void:
+	var shots := "--shots" in OS.get_cmdline_user_args()
+	var was := Loadout.character_index
+
+	for state in ["main", "howto", "leaderboard", "career", "changelog",
+			"customize", "settings", "browse"]:
+		_go(state)
+		await _settle(shots, state)
+
+	_go("character")
+	for i in Characters.count():
+		_pick_character(i)
+		await _settle(shots, "character_%s" % Characters.get_entry(i)["id"])
+
+	_pick_character(was)
+	_go("main")
+	print("TOUR ok")
+	get_tree().quit(0)
+
+
+func _settle(shots: bool, label: String) -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not shots:
+		return
+	await RenderingServer.frame_post_draw
+	get_viewport().get_texture().get_image().save_png("user://shot_%s.png" % label)
 
 
 func _process(delta: float) -> void:
@@ -235,12 +284,25 @@ func _go(state: String) -> void:
 	settings_panel.visible = state == "settings"
 	changelog_panel.visible = state == "changelog"
 	how_to_panel.visible = state == "howto"
-	leaderboard_panel.visible = state == "records"
-	if state == "records":
+	leaderboard_panel.visible = state == "leaderboard"
+	career_panel.visible = state == "career"
+	if state == "leaderboard":
 		_build_leaderboard()
+	elif state == "career":
+		_build_career()
+
+	# The masthead belongs to the title screen. Every panel used to open
+	# underneath it and the tagline ran straight into the first row of controls —
+	# "GRAPHICS QUALITY" sat about four pixels under it. Each panel carries its
+	# own heading instead, and gets the whole screen to breathe in.
+	var at_title := state == "main"
+	title.visible = at_title
+	subtitle.visible = at_title
+	title_rule.visible = at_title
+	tagline.visible = at_title
 	# The version tag belongs on the title screen, not stamped over every panel.
-	changelog_btn.visible = state == "main"
-	version_label.visible = state == "main"
+	changelog_btn.visible = at_title
+	version_label.visible = at_title
 	# The turntable is live 3D; there's no reason to render it off-screen.
 	character_preview.set_active(state == "character")
 	if state == "character":
@@ -476,83 +538,145 @@ func _pick_character(index: int) -> void:
 	_refresh_identity()
 
 
-## Career records and the last match's standings. Rebuilt every time the panel
-## opens, so it always reflects the game you just finished.
+## Who's actually winning, by character. Every name on the roster, most kills
+## first, with the one you're playing as marked.
+##
+## It's the standings for this phone rather than for the group — a real
+## cross-player table would need a server nobody wants to run — but since your
+## character *is* your name in a match, "which of these twelve has the most
+## kills" is the question people were asking anyway.
 func _build_leaderboard() -> void:
 	for child in leaderboard_list.get_children():
 		child.queue_free()
 
-	_records_heading("CAREER")
-	_records_line("Kills", str(Stats.kills))
-	_records_line("Deaths", str(Stats.deaths))
-	_records_line("K/D", "%.2f" % Stats.kd())
-	_records_line("Matches", str(Stats.matches))
-	_records_line("Best killstreak", str(Stats.best_streak))
-	_records_line("Most kills in a match", str(Stats.best_match_kills))
-	_records_spacer()
-
-	var ranking := Stats.character_ranking()
-	if not ranking.is_empty():
-		_records_heading("WHO YOU PLAY")
-		for row in ranking:
-			var entry := Characters.get_entry(int(row["character"]))
-			_records_line("%s" % row["name"],
-				"%d kills   %d deaths" % [int(row["kills"]), int(row["deaths"])],
-				entry["accent"])
-		_records_spacer()
-
-	if Stats.last_match.is_empty():
-		_records_heading("LAST MATCH")
-		_records_line("No games yet", "play one")
+	if not Stats.has_history():
+		_row(leaderboard_list, "Nothing on the board yet", "go and play one", "",
+			Color(0.55, 0.58, 0.72))
 		return
 
-	_records_heading("LAST MATCH")
+	_heading(leaderboard_list, "BY KILLS")
+	var rank := 0
+	for row in Stats.leaderboard():
+		rank += 1
+		var index := int(row["character"])
+		var entry := Characters.get_entry(index)
+		var mine := index == Loadout.character_index
+		var accent: Color = entry["accent"]
+		_row(leaderboard_list,
+			"%d.   %s%s" % [rank, row["name"], "   (you)" if mine else ""],
+			"%d" % int(row["kills"]),
+			"%d deaths" % int(row["deaths"]),
+			Color(1.0, 0.82, 0.35) if mine else accent,
+			int(row["kills"]) == 0)
+
+	if Stats.last_match.is_empty():
+		return
+
+	_spacer(leaderboard_list)
+	_heading(leaderboard_list, "LAST MATCH")
 	for i in Stats.last_match.size():
 		var row: Dictionary = Stats.last_match[i]
 		var entry := Characters.get_entry(int(row["character"]))
-		var label := "%d.  %s%s" % [i + 1, row["name"], "   (you)" if row.get("you", false) else ""]
-		_records_line(label, "%d kills   %d deaths" % [int(row["kills"]), int(row["deaths"])],
-			entry["accent"] if not row.get("you", false) else Color(1.0, 0.82, 0.35))
+		var you: bool = bool(row.get("you", false))
+		_row(leaderboard_list,
+			"%d.   %s%s" % [i + 1, row["name"], "   (you)" if you else ""],
+			"%d" % int(row["kills"]),
+			"%d deaths" % int(row["deaths"]),
+			Color(1.0, 0.82, 0.35) if you else Color(entry["accent"]))
 
 
-func _records_heading(text: String) -> void:
+## Everything you personally have done, across every character and every match.
+func _build_career() -> void:
+	for child in career_list.get_children():
+		child.queue_free()
+
+	_heading(career_list, "ALL TIME")
+	_row(career_list, "Kills", str(Stats.kills), "")
+	_row(career_list, "Deaths", str(Stats.deaths), "")
+	_row(career_list, "K/D", "%.2f" % Stats.kd(), "")
+	_row(career_list, "Matches played", str(Stats.matches), "")
+	_spacer(career_list)
+
+	_heading(career_list, "BEST")
+	_row(career_list, "Killstreak", str(Stats.best_streak), "in one life")
+	_row(career_list, "Kills in a match", str(Stats.best_match_kills), "")
+	_spacer(career_list)
+
+	_heading(career_list, "WHO YOU PLAY")
+	var played := 0
+	for row in Stats.leaderboard():
+		if int(row["kills"]) == 0 and int(row["deaths"]) == 0:
+			continue
+		played += 1
+		var entry := Characters.get_entry(int(row["character"]))
+		_row(career_list, str(row["name"]), "%d" % int(row["kills"]),
+			"%d deaths" % int(row["deaths"]), Color(entry["accent"]))
+	if played == 0:
+		_row(career_list, "Nobody yet", "—", "", Color(0.55, 0.58, 0.72), true)
+
+
+func _heading(into: VBoxContainer, text: String) -> void:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_size_override("font_size", 17)
 	label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.35))
-	leaderboard_list.add_child(label)
+	into.add_child(label)
 
 
-func _records_line(left: String, right: String, accent := Color(0.55, 0.58, 0.72)) -> void:
+## One line of a table: colour bar, name, a big number, and a quiet note after
+## it. `faded` is for roster entries nobody has touched — present, so you can
+## see who's left to try, but not competing for attention.
+func _row(into: VBoxContainer, left: String, value: String, note: String,
+		accent := Color(0.55, 0.58, 0.72), faded := false) -> void:
+	var alpha := 0.38 if faded else 1.0
+
 	var row := HBoxContainer.new()
-	row.custom_minimum_size = Vector2(0, 26)
-	row.add_theme_constant_override("separation", 10)
+	row.custom_minimum_size = Vector2(0, 30)
+	row.add_theme_constant_override("separation", 14)
 
 	var stripe := ColorRect.new()
-	stripe.color = accent
+	stripe.color = Color(accent.r, accent.g, accent.b, alpha)
 	stripe.custom_minimum_size = Vector2(4, 0)
 	row.add_child(stripe)
 
 	var name_label := Label.new()
 	name_label.text = left
-	name_label.add_theme_font_size_override("font_size", 15)
-	name_label.add_theme_color_override("font_color", Color(0.86, 0.89, 0.96))
+	name_label.add_theme_font_size_override("font_size", 16)
+	name_label.add_theme_color_override("font_color", Color(0.86, 0.89, 0.96, alpha))
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(name_label)
 
-	var value := Label.new()
-	value.text = right
-	value.add_theme_font_size_override("font_size", 15)
-	value.add_theme_color_override("font_color", Color(0.66, 0.70, 0.82))
-	row.add_child(value)
+	if not note.is_empty():
+		var note_label := Label.new()
+		note_label.text = note
+		note_label.add_theme_font_size_override("font_size", 13)
+		note_label.add_theme_color_override("font_color", Color(0.58, 0.62, 0.75, alpha))
+		note_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(note_label)
 
-	leaderboard_list.add_child(row)
+	var value_label := Label.new()
+	value_label.text = value
+	value_label.custom_minimum_size = Vector2(64, 0)
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	value_label.add_theme_font_size_override("font_size", 18)
+	value_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.92 * alpha))
+	value_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(value_label)
+
+	# Keeps the numbers clear of the scroll bar, which otherwise sits right on
+	# top of the leaderboard's kill counts.
+	var gutter := Control.new()
+	gutter.custom_minimum_size = Vector2(18, 0)
+	row.add_child(gutter)
+
+	into.add_child(row)
 
 
-func _records_spacer() -> void:
+func _spacer(into: VBoxContainer) -> void:
 	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(0, 12)
-	leaderboard_list.add_child(spacer)
+	spacer.custom_minimum_size = Vector2(0, 16)
+	into.add_child(spacer)
 
 
 ## The rules, for somebody who has never seen this before. Written for a

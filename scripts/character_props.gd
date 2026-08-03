@@ -28,35 +28,126 @@ static func build(kind: String, prop: Node3D, entry: Dictionary, rig: Node3D) ->
 # Held things — these ride in the right hand, which the rig raises and lowers.
 # ---------------------------------------------------------------------------
 
-static func _joint(_prop: Node3D, rig: Node3D) -> void:
+static func _joint(prop: Node3D, rig: Node3D) -> void:
 	var hand := _hand(rig)
 	var j := _box(hand, Vector3(0, -0.06, -0.03), Vector3(0.012, 0.012, 0.09),
 		_mat(Color(0.94, 0.92, 0.86), 0.9))
 	_box(j, Vector3(0, 0, -0.052), Vector3(0.014, 0.014, 0.014),
 		_glow(Color(1.0, 0.45, 0.15), 3.0))
+
+	# On his fifteen, with the shop run already done.
+	_cigarette_bag(prop, Vector3(0.60, 0, 0.24), -22.0)
+	_cigarette_bag(prop, Vector3(0.86, 0, -0.02), 14.0)
+
 	rig.animated["hand"] = hand
 	rig.animated["smoke_origin"] = j
 	rig.behaviour = "smoke"
 
 
-static func _monster(_prop: Node3D, rig: Node3D) -> void:
+static func _monster(prop: Node3D, rig: Node3D) -> void:
 	var hand := _hand(rig)
-	var black := _mat(Color(0.045, 0.05, 0.045), 0.30, 0.6)
-	var can := _cylinder(hand, Vector3(0, -0.082, 0), 0.036, 0.155, black)
-	# Ribbed ends, like a real can.
-	_cylinder(can, Vector3(0, 0.080, 0), 0.032, 0.014, _mat(Color(0.62, 0.64, 0.68), 0.2, 0.9))
-	_cylinder(can, Vector3(0, -0.079, 0), 0.033, 0.012, black)
+	_monster_can(hand, Vector3(0, -0.082, 0))
 
-	# The claw: three tapered slashes in that unmistakable green, both faces.
-	var claw := _glow(Color(0.42, 0.98, 0.16), 2.8)
-	for i in 3:
-		var lean: float = -13.0 + float(i) * 13.0
-		var length: float = 0.105 - absf(float(i) - 1.0) * 0.020
-		for side: float in [-1.0, 1.0]:
-			_box(can, Vector3(-0.020 + float(i) * 0.020, 0.004, side * 0.0355),
-				Vector3(0.011, length, 0.003), claw, Vector3(0, 0, lean))
+	# Third one today, and the rest of them stacked at his feet.
+	var stack := Node3D.new()
+	stack.position = Vector3(0.68, 0, 0.18)
+	stack.rotation_degrees.y = -18.0
+	prop.add_child(stack)
+	for layer in 3:
+		_monster_four_pack(stack, Vector3(0, layer * 0.168, 0))
+	# A second column, one lower, so it reads as a stash rather than a tower.
+	for layer in 2:
+		_monster_four_pack(stack, Vector3(0.185, layer * 0.168, 0.03))
+	# And a few loose ones in front of it.
+	_monster_can(stack, Vector3(-0.15, 0.078, -0.19))
+	_monster_can(stack, Vector3(-0.05, 0.078, -0.24))
+	_monster_can(stack, Vector3(0.09, 0.078, -0.21))
+
 	rig.animated["hand"] = hand
 	rig.behaviour = "drink"
+
+
+## One can: black body, ribbed ends, claw on both faces so it reads from either
+## side. Shared by the one in his hand and every one in the stack.
+static func _monster_can(parent: Node3D, at: Vector3) -> MeshInstance3D:
+	var black := _mat(Color(0.045, 0.05, 0.045), 0.30, 0.6)
+	var can := _cylinder(parent, at, 0.036, 0.155, black)
+	_cylinder(can, Vector3(0, 0.080, 0), 0.032, 0.014, _mat(Color(0.62, 0.64, 0.68), 0.2, 0.9))
+	_cylinder(can, Vector3(0, -0.079, 0), 0.033, 0.012, black)
+	_claw(can, Vector3(0, 0.004, 0), 0.105, 0.0355, true)
+	return can
+
+
+## Four cans in a cardboard sleeve.
+static func _monster_four_pack(parent: Node3D, at: Vector3) -> void:
+	var pack := Node3D.new()
+	pack.position = at
+	parent.add_child(pack)
+
+	for col in 2:
+		for row in 2:
+			_monster_can(pack, Vector3(-0.038 + col * 0.076, 0.078, -0.038 + row * 0.076))
+
+	# Sleeve gripping the bottom third, sized to wrap outside the cans. Kept a
+	# good deal lighter than the cans themselves — at true Monster black the
+	# whole stack turned into one unreadable smudge on the select screen.
+	_box(pack, Vector3(0, 0.044, 0), Vector3(0.168, 0.074, 0.168),
+		_mat(Color(0.17, 0.19, 0.17), 0.85))
+	for face: float in [-1.0, 1.0]:
+		_claw(pack, Vector3(0, 0.046, face * 0.086), 0.056, 0.0, false)
+
+
+## The three-slash claw, at whatever size. Both faces on a can so it reads from
+## either side; one face on a cardboard sleeve.
+static func _claw(parent: Node3D, at: Vector3, height: float, depth: float,
+		both_faces: bool) -> void:
+	var mat := _glow(Color(0.42, 0.98, 0.16), 2.8)
+	var faces: Array = [-1.0, 1.0] if both_faces else [1.0]
+	var step := height * 0.19
+	for i in 3:
+		var lean: float = -13.0 + float(i) * 13.0
+		var length: float = height - absf(float(i) - 1.0) * step
+		for side: float in faces:
+			_box(parent, at + Vector3((float(i) - 1.0) * step, 0.0, side * depth),
+				Vector3(height * 0.105, length, 0.003), mat, Vector3(0, 0, lean))
+
+
+## A shop bag with cartons of smokes standing in it.
+##
+## Cartons rather than loose packs: nobody at a gas station buys one packet at a
+## time, and a carton's long flat top is what makes the bag read as full of
+## cigarettes from across the select screen.
+static func _cigarette_bag(parent: Node3D, at: Vector3, yaw: float) -> void:
+	var root := Node3D.new()
+	root.position = at
+	root.rotation_degrees.y = yaw
+	parent.add_child(root)
+
+	var plastic := _mat(Color(0.84, 0.85, 0.89), 0.88)
+	var crease := _mat(Color(0.72, 0.73, 0.78), 0.9)
+
+	# Body, a little wider at the base than the mouth so it sits like a full bag.
+	_box(root, Vector3(0, 0.135, 0), Vector3(0.34, 0.27, 0.23), plastic)
+	_box(root, Vector3(0, 0.275, 0), Vector3(0.295, 0.06, 0.195), crease)
+	# Two pinched handles.
+	for side: float in [-0.095, 0.095]:
+		_box(root, Vector3(side, 0.365, 0), Vector3(0.026, 0.125, 0.13), crease)
+
+	# Cartons standing in the bag, most of their height clearing the rim — that
+	# tall band of colour is the only thing that says "cigarettes" rather than
+	# "white box" from where the camera actually sits.
+	var wrappers := [Color(0.86, 0.11, 0.13), Color(0.95, 0.78, 0.22), Color(0.13, 0.35, 0.62)]
+	for i in 3:
+		var carton := _box(root, Vector3(-0.086 + i * 0.086, 0.375, 0.0),
+			Vector3(0.078, 0.235, 0.15), _mat(wrappers[i], 0.68),
+			Vector3(0, 0, -6.0 + i * 6.0))
+		# The white band every packet has near its base. Slightly proud of the
+		# carton on every side, so the two faces can't z-fight.
+		_box(carton, Vector3(0, -0.082, 0), Vector3(0.081, 0.06, 0.153),
+			_mat(Color(0.94, 0.94, 0.96), 0.7))
+		# Lid seam across the top.
+		_box(carton, Vector3(0, 0.108, 0), Vector3(0.081, 0.016, 0.153),
+			_mat(Color(wrappers[i]).darkened(0.35), 0.7))
 
 
 static func _gatorade(prop: Node3D, rig: Node3D) -> void:
@@ -188,6 +279,10 @@ static func _music(prop: Node3D, entry: Dictionary, rig: Node3D) -> void:
 	var bowl := _cylinder(stem, Vector3(0, 0.062, 0), 0.026, 0.032, glass)
 	var ember_mat := _glow(Color(1.0, 0.42, 0.10), 0.5)
 	_cylinder(bowl, Vector3(0, 0.017, 0), 0.019, 0.008, ember_mat)
+
+	# Shop run, same as Josh's. They go on their breaks together.
+	_cigarette_bag(prop, Vector3(0.64, 0, 0.26), 26.0)
+	_cigarette_bag(prop, Vector3(0.88, 0, -0.04), -12.0)
 
 	rig.animated["notes"] = notes
 	rig.animated["halo"] = halo_mat

@@ -19,6 +19,7 @@ var player = null
 var phone = null
 
 var _sweep_angle := 0.0
+var _was_active := false
 
 
 func _ready() -> void:
@@ -26,6 +27,15 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# Off-ping the radar is a static ring and the words NO SIGNAL. Only the live
+	# sweep needs a frame-by-frame redraw.
+	var active: bool = phone != null and phone.tracking_active()
+	if not active:
+		if _was_active:
+			_was_active = false
+			queue_redraw()
+		return
+	_was_active = true
 	_sweep_angle = fmod(_sweep_angle + delta * 2.4, TAU)
 	queue_redraw()
 

@@ -44,6 +44,8 @@ var local_only := false     ## menu backdrop: drive without any networking
 var _cars: Array = []
 var _next_spawn := 6.0
 var _clock := 0.0
+## Colour index -> a hidden, already-merged car to copy from.
+var _templates: Dictionary = {}
 
 
 func _process(delta: float) -> void:
@@ -78,9 +80,9 @@ func _arrive(route_index: int, colour_index: int, wait_seconds: float) -> void:
 	if world == null or not world.has_method("build_car"):
 		return
 	var path: Array = ROUTES[route_index % ROUTES.size()]
-	var car: Node3D = world.build_car(COLOURS[colour_index % COLOURS.size()])
-	_strip_collision(car)
-	MeshMerge.merge_tree(car)
+	var car := _car_of_colour(colour_index % COLOURS.size())
+	if car == null:
+		return
 	add_child(car)
 
 	car.global_position = path[0]
@@ -141,6 +143,39 @@ func _drive(delta: float) -> void:
 
 	for car in finished:
 		_cars.erase(car)
+
+
+## A car of the given colour, ready to drive.
+##
+## The first one of each colour is built the slow way — thirty boxes, their
+## colliders thrown straight back away, then a SurfaceTool merge — and kept as a
+## hidden template. Every later arrival is a duplicate of that template, which
+## shares the merged mesh and costs a handful of nodes. Doing the full build
+## every time meant a frame-long hitch every fifteen seconds or so, which on a
+## phone is exactly the kind of stutter people notice and framerate graphs miss.
+func _car_of_colour(index: int) -> Node3D:
+	if not _templates.has(index):
+		var built: Node3D = world.build_car(COLOURS[index])
+		_strip_collision(built)
+		MeshMerge.merge_tree(built)
+
+		# merge_tree only *queues* the originals for deletion, so this frame the
+		# car still has all thirty of them hanging off it. Lift the merged
+		# meshes into a clean root rather than duplicating that.
+		var template := Node3D.new()
+		template.name = "Template%d" % index
+		template.visible = false
+		for child in built.get_children():
+			if child is MeshInstance3D and not child.is_queued_for_deletion():
+				built.remove_child(child)
+				template.add_child(child)
+		built.queue_free()
+		add_child(template)
+		_templates[index] = template
+
+	var car: Node3D = (_templates[index] as Node3D).duplicate()
+	car.visible = true
+	return car
 
 
 ## Traffic is decoration. Nothing about it should ever be solid.

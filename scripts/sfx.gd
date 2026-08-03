@@ -26,11 +26,7 @@ func _ready() -> void:
 	# Positional voices, built once and reused forever. Parented here until a
 	# world asks for one.
 	for i in 14:
-		var p := AudioStreamPlayer3D.new()
-		p.bus = "SFX"
-		p.unit_size = 8.0
-		add_child(p)
-		_pool_3d.append(p)
+		_pool_3d.append(_new_voice())
 
 	_ring = AudioStreamPlayer.new()
 	_ring.bus = "SFX"     # was Master, so the effects slider didn't touch it
@@ -58,11 +54,12 @@ func play(id: String, volume_db := 0.0, pitch := 1.0) -> void:
 ## of cost on a phone because it shows up as stutter rather than framerate.
 func play_at(id: String, world_node: Node3D, position: Vector3, volume_db := 0.0,
 		max_distance := 60.0) -> void:
-	if not _bank.has(id) or world_node == null:
+	if not _bank.has(id) or not is_instance_valid(world_node):
 		return
 	var p := _next_3d()
 	# Reparent rather than rebuild: positional audio has to live in the world's
-	# tree to be heard in the right place.
+	# tree to be heard in the right place. `release_voices` takes them back out
+	# again before that world is freed — see the note there.
 	if p.get_parent() != world_node:
 		if p.get_parent() != null:
 			p.get_parent().remove_child(p)
@@ -74,17 +71,53 @@ func play_at(id: String, world_node: Node3D, position: Vector3, volume_db := 0.0
 	p.play()
 
 
+## Bring every positional voice back out of the level before that level is freed.
+##
+## They're parented into the world while they play so they're heard in the right
+## place, which also means `world.queue_free()` deletes the whole pool along with
+## it. Every zap after the first match then hit a freed node and threw two script
+## errors with full backtraces — per shot, for the rest of the session. main.gd
+## calls this on the way out of a match.
+func release_voices() -> void:
+	for voice in _pool_3d:
+		if not is_instance_valid(voice):
+			continue
+		voice.stop()
+		var parent := voice.get_parent()
+		if parent != null and parent != self:
+			parent.remove_child(voice)
+			add_child(voice)
+
+
 func _next_3d() -> AudioStreamPlayer3D:
 	# Prefer a free voice; if every one is busy, steal the oldest. Stealing is
 	# fine here — a shot you can't hear over eight others isn't a loss.
 	for i in _pool_3d.size():
 		var index := (_pool_3d_index + i) % _pool_3d.size()
-		if not _pool_3d[index].playing:
+		var voice := _voice(index)
+		if not voice.playing:
 			_pool_3d_index = (index + 1) % _pool_3d.size()
-			return _pool_3d[index]
-	var stolen := _pool_3d[_pool_3d_index]
+			return voice
+	var stolen := _voice(_pool_3d_index)
 	_pool_3d_index = (_pool_3d_index + 1) % _pool_3d.size()
 	return stolen
+
+
+## A pooled voice, rebuilt if anything has managed to free it. `release_voices`
+## is what stops that happening; this is so that if it ever does again, the game
+## loses one sound instead of every sound from then on.
+func _voice(index: int) -> AudioStreamPlayer3D:
+	if not is_instance_valid(_pool_3d[index]):
+		_pool_3d[index] = _new_voice()
+	return _pool_3d[index]
+
+
+func _new_voice() -> AudioStreamPlayer3D:
+	var voice := AudioStreamPlayer3D.new()
+	voice.bus = "SFX"
+	voice.unit_size = 8.0
+	add_child(voice)
+	return voice
 
 
 func start_ringing() -> void:

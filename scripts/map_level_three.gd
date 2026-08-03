@@ -59,7 +59,7 @@ func _build_environment() -> void:
 	env.background_color = Color(0.035, 0.040, 0.055)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.42, 0.47, 0.60)
-	env.ambient_light_energy = 0.85 if Settings.shadows_enabled() else 1.05
+	env.ambient_light_energy = _ambient_for(_wants_sun_shadows())
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.tonemap_white = 3.0
 
@@ -99,6 +99,17 @@ func _build_environment() -> void:
 	_env = env
 	_sun = sun
 	Settings.changed.connect(_apply_quality)
+
+
+## Underground. There is no sun in here to cast anything, and letting the shared
+## quality code switch shadows on for it drew a hard directional shadow through
+## a concrete ceiling.
+func _wants_sun_shadows() -> bool:
+	return false
+
+
+func _ambient_for(_shadows: bool) -> float:
+	return 1.05
 
 
 func _build_level() -> void:
