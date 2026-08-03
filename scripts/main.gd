@@ -1,7 +1,6 @@
 extends Node
 ## Root. Owns the swap between menu and match.
 
-const WORLD_SCENE := preload("res://scenes/world.tscn")
 const HUD_SCENE := preload("res://scenes/hud.tscn")
 const BACKDROP_SCRIPT := preload("res://scripts/menu_backdrop.gd")
 const POST_MATCH_SECONDS := 6.0
@@ -73,6 +72,12 @@ func _handle_command_line() -> void:
 			who = a.substr(7)
 		elif a.begins_with("--autojoin="):
 			join_target = a.substr(11)
+		elif a.begins_with("--map="):
+			# Jump straight onto a given map, for testing one without clicking
+			# through the lobby.
+			var id := a.substr(6)
+			if Maps.is_available(id):
+				Net.selected_map = id
 
 	if "--practice" in args:
 		Net.start_practice(who, 1)
@@ -95,7 +100,9 @@ func _on_match_started() -> void:
 	_stop_backdrop()   # two WorldEnvironments would fight over the sky
 	menu_layer.hide()
 
-	world = WORLD_SCENE.instantiate()
+	# Whichever map the host picked. Net.selected_map is already synced to
+	# everyone by the time the match starts.
+	world = load(Maps.scene_path(Net.selected_map)).instantiate()
 	game_root.add_child(world)
 	Net.world = world
 

@@ -8,7 +8,6 @@ extends Node3D
 ## Shots are slow dollies with a fixed look target, cut together with a short
 ## fade to black that menu.gd draws on top.
 
-const WORLD_SCENE := preload("res://scenes/world.tscn")
 const SHOT_SECONDS := 9.0
 const FADE_SECONDS := 1.1
 
@@ -49,7 +48,9 @@ var _elapsed := 0.0
 
 
 func _ready() -> void:
-	var world = WORLD_SCENE.instantiate()
+	# The backdrop always shows Beach Gas: these camera moves are framed for it,
+	# and the menu should look the same whichever map is selected in the lobby.
+	var world = load(Maps.scene_path(Maps.DEFAULT_ID)).instantiate()
 	world.decorative = true
 	add_child(world)
 

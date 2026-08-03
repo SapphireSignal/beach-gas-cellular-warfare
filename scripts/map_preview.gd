@@ -3,10 +3,12 @@ extends Control
 ## image — so it costs nothing, scales to any screen, and can never fall out of
 ## sync with the level, because it reads the same coordinates world.gd builds.
 
-const WORLD_W := 62.0    ## lot spans x -31..31
+const WORLD_W := 62.0    ## Beach Gas spans x -31..31
 const WORLD_H := 48.0    ## and z -24..24
 
 var map_id := Maps.DEFAULT_ID
+## World size the drawing is currently scaled against. Each map sets its own.
+var _extents := Vector2(WORLD_W, WORLD_H)
 
 
 func _ready() -> void:
@@ -28,6 +30,7 @@ func _draw() -> void:
 
 	match map_id:
 		"beach_gas": _draw_beach_gas(accent)
+		"level_three": _draw_level_three(accent)
 		_: _draw_locked(accent)
 
 	draw_rect(Rect2(Vector2.ZERO, size), Color(accent.r, accent.g, accent.b, 0.35), false, 2.0)
@@ -50,6 +53,7 @@ func _draw_locked(accent: Color) -> void:
 
 
 func _draw_beach_gas(accent: Color) -> void:
+	_extents = Vector2(WORLD_W, WORLD_H)
 	var building := Color(accent.r, accent.g, accent.b, 0.30)
 	var outline := Color(accent.r, accent.g, accent.b, 0.75)
 	var prop := Color(accent.r, accent.g, accent.b, 0.45)
@@ -106,9 +110,56 @@ func _draw_beach_gas(accent: Color) -> void:
 
 # ---------------------------------------------------------------------------
 
+## Level 3 Parking is 56 x 44, so it's drawn against its own extents rather than
+## the forecourt's — otherwise the garage would float in the middle of a frame
+## sized for a different map.
+func _draw_level_three(accent: Color) -> void:
+	var previous := Vector2(WORLD_W, WORLD_H)
+	_extents = Vector2(56.0, 44.0)
+
+	var slab := Color(accent.r, accent.g, accent.b, 0.07)
+	var outline := Color(accent.r, accent.g, accent.b, 0.75)
+	var prop := Color(accent.r, accent.g, accent.b, 0.45)
+
+	_rect(-28, -22, 56, 44, slab, true)
+	_rect(-28, -22, 56, 44, outline, false)
+
+	# Mezzanine over the northern third, drawn brighter because it's above you.
+	_rect(-14, -22, 28, 18, Color(accent.r, accent.g, accent.b, 0.24), true)
+	_rect(-14, -22, 28, 18, outline, false)
+
+	# Ramp up the west side.
+	_rect(-24, -12, 6, 16, Color(accent.r, accent.g, accent.b, 0.18), true)
+
+	# Pillar grid — the thing that defines the map.
+	for col in 7:
+		for row in 4:
+			_rect(-21.45 + col * 7.0, -13.95 + row * 9.0, 0.9, 0.9, outline, true)
+
+	# Stair and lift core.
+	_rect(-18, 5, 8, 6, Color(accent.r, accent.g, accent.b, 0.30), true)
+	_rect(-18, 5, 8, 6, outline, false)
+
+	# Parked cars in the two ranks.
+	for entry in [[-21.5, -9.0], [-14.5, -9.0], [-0.5, -9.0], [13.0, -9.0], [20.0, -9.0],
+			[-17.5, 9.0], [-3.0, 9.0], [4.5, 9.0], [18.0, 9.0], [24.5, 9.0]]:
+		_rect(entry[0] - 0.95, entry[1] - 2.2, 1.9, 4.4, prop, true)
+
+	# Street-side opening along the south wall.
+	var a := _to_screen(-28.0, 22.0)
+	var b := _to_screen(28.0, 22.0)
+	draw_line(a, b, Color(1.0, 0.82, 0.35, 0.85), 3.0)
+
+	var font := ThemeDB.fallback_font
+	draw_string(font, Vector2(10, size.y - 10), "LEVEL 3 PARKING",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(accent.r, accent.g, accent.b, 0.7))
+
+	_extents = previous
+
+
 func _to_screen(x: float, z: float) -> Vector2:
-	return Vector2((x + WORLD_W * 0.5) / WORLD_W * size.x,
-		(z + WORLD_H * 0.5) / WORLD_H * size.y)
+	return Vector2((x + _extents.x * 0.5) / _extents.x * size.x,
+		(z + _extents.y * 0.5) / _extents.y * size.y)
 
 
 func _rect(x: float, z: float, w: float, h: float, color: Color, filled: bool) -> void:

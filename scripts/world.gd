@@ -56,6 +56,15 @@ var _merge_roots: Array[Node3D] = []
 func _ready() -> void:
 	_build_materials()
 	_build_environment()
+	_build_level()
+	_collapse_geometry()
+	if wants_traffic():
+		_start_traffic()
+
+
+## What this map is made of. Overridden by each map script; everything above and
+## below it — players, materials, builders, merging — is shared.
+func _build_level() -> void:
 	_build_ground()
 	_build_perimeter()
 	_build_surroundings()
@@ -65,14 +74,18 @@ func _ready() -> void:
 	_build_summerleaf()
 	_build_parking()
 	_build_props()
-	_collapse_geometry()
-	_start_traffic()
 
 
-## The level is authored as a few hundred separate boxes because that's the only
-## sane way to write it, and rendered as about twenty meshes because that's the
-## only sane way to draw it. Colliders are untouched — they're broadphase work,
-## not per-frame work.
+## Only maps with a road and a forecourt want cars pulling in.
+func wants_traffic() -> bool:
+	return true
+
+
+## Where players appear. Overridden per map.
+func spawn_points() -> Array[Vector3]:
+	return SPAWNS
+
+
 ## Ambient traffic. Added after the merge so its cars aren't folded into the
 ## static level.
 func _start_traffic() -> void:
@@ -84,6 +97,10 @@ func _start_traffic() -> void:
 	traffic.local_only = decorative
 
 
+## The level is authored as a few hundred separate boxes because that's the only
+## sane way to write it, and rendered as a couple of dozen meshes because that's
+## the only sane way to draw it. Colliders are untouched — they're broadphase
+## work, not per-frame work.
 func _collapse_geometry() -> void:
 	for root in _merge_roots:
 		# merge_tree, not merge_children: a plant's leaflets are three pivots
@@ -134,7 +151,8 @@ func local_player():
 
 
 func spawn_point(index: int) -> Vector3:
-	return SPAWNS[index % SPAWNS.size()]
+	var list := spawn_points()
+	return list[index % list.size()]
 
 
 # ---------------------------------------------------------------------------

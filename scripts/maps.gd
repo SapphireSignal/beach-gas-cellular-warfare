@@ -12,24 +12,28 @@ const LIST: Array[Dictionary] = [
 		"id": "beach_gas",
 		"name": "Beach Gas",
 		"blurb": "24-hour forecourt. Store, canopy, and nowhere good to hide.",
+		"scene": "res://scenes/beach_gas.tscn",
+		"available": true,
+	},
+	{
+		"id": "level_three",
+		"name": "Level 3 Parking",
+		"blurb": "Low ceiling, pillars everywhere, and a deck above half of it.",
+		"scene": "res://scenes/level_three.tscn",
 		"available": true,
 	},
 	{
 		"id": "sudz",
 		"name": "Sudz Car Wash",
 		"blurb": "Coming soon.",
+		"scene": "",
 		"available": false,
 	},
 	{
 		"id": "sunset_motel",
 		"name": "Sunset Motel",
 		"blurb": "Coming soon.",
-		"available": false,
-	},
-	{
-		"id": "level_three",
-		"name": "Level 3 Parking",
-		"blurb": "Coming soon.",
+		"scene": "",
 		"available": false,
 	},
 ]
@@ -50,3 +54,10 @@ static func display_name(id: String) -> String:
 
 static func is_available(id: String) -> bool:
 	return bool(get_map(id)["available"])
+
+
+## Scene to load for a map, falling back to the default if the id is unknown or
+## the map isn't built yet.
+static func scene_path(id: String) -> String:
+	var path := str(get_map(id).get("scene", ""))
+	return path if path != "" else str(get_map(DEFAULT_ID)["scene"])
