@@ -22,9 +22,10 @@ const MODE_COLORS := [
 ]
 
 # --- zap ---
-## One shot per tap, and each one hurts: three connect and you're down.
-const ZAP_DAMAGE := 34.0
-const ZAP_FALLOFF_DAMAGE := 21.0
+## Five clean hits to put somebody down, dropping to about eight at max range.
+## Long enough that a fight is a fight rather than whoever peeked first.
+const ZAP_DAMAGE := 20.0
+const ZAP_FALLOFF_DAMAGE := 13.0
 const ZAP_FALLOFF_START := 22.0
 const ZAP_RANGE := 45.0
 ## Enough of a gap that shots read as separate hits rather than a blur, short
@@ -32,9 +33,9 @@ const ZAP_RANGE := 45.0
 ## silent on purpose — nothing happens, and the game doesn't tell you off.
 const ZAP_COOLDOWN := 0.18
 
-## Heat is the real limiter now. Mash the trigger and you get six shots — two
-## kills' worth — then five seconds of nothing.
-const HEAT_PER_SHOT := 0.5
+## Heat is the real limiter. Mash the trigger and you get about nine shots —
+## one kill plus room to miss — then five seconds of nothing.
+const HEAT_PER_SHOT := 0.34
 const HEAT_MAX := 3.0
 const HEAT_COOL_RATE := 1.0
 const HEAT_COOL_DELAY := 0.28

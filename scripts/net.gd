@@ -38,11 +38,11 @@ const SPAWN_COUNT := 8
 ## above ZAP_DAMAGE, and the interval just under ZAP_COOLDOWN so ordinary
 ## network jitter never eats a legitimate shot.
 ##
-## These were left at beam-era values (12 damage, 70ms) after the weapon went
-## back to single shots, which silently clamped every hit to a third of its
-## damage — nine hits to kill instead of three.
+## These were once left at beam-era values (12 damage, 70ms) after the weapon
+## went back to single shots, which silently clamped every hit to a fraction of
+## its damage. Keep them in step with phone.gd.
 const MAX_ZAP_RANGE := 70.0
-const MAX_ZAP_DAMAGE := 40.0
+const MAX_ZAP_DAMAGE := 26.0
 const MIN_ZAP_INTERVAL_MS := 140
 
 signal lobby_changed()

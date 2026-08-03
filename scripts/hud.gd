@@ -119,7 +119,7 @@ func _apply_input_mode() -> void:
 	quit_btn.visible = touch_mode
 
 	hint_label.visible = not touch_mode
-	hint_label.text = "WASD move  ·  Mouse look  ·  LMB zap  ·  Q track  ·  E call  ·  C crouch  ·  Tab scores  ·  Alt cursor  ·  Esc leave  ·  F1 touch layout"
+	hint_label.text = "WASD move  ·  Mouse look  ·  LMB zap  ·  Q track  ·  E call  ·  Ctrl crouch  ·  Tab scores  ·  Alt cursor  ·  Esc leave  ·  F1 touch layout"
 	if touch_mode:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	else:

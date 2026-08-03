@@ -14,7 +14,7 @@ cooldowns and heat ration everything.
 
 | | Limit | What it does |
 |---|---|---|
-| **ZAP** | Heat: ~6 shots, then 5 s locked out | 34 damage up close, 21 at max range — three hits kills. Short 0.18 s gap between shots. The beam leaves the phone's camera lens. |
+| **ZAP** | Heat: ~9 shots, then 5 s locked out | 20 damage up close, 13 at max range — five hits kills. Short 0.18 s gap between shots. The beam leaves the phone's camera lens. |
 | **TRACK** | 8 s cooldown | Sonar ping. Reveals everyone on your radar for 3 s — **and tells them you scanned them**. |
 | **CALL** | 20 s cooldown | Makes their phone ring, anywhere on the map. Walls and distance don't matter, because phone calls don't. For 5 s they move at 45% speed and can't shoot, and ice crusts over them so everyone can see it landed. |
 
@@ -67,6 +67,7 @@ tracks, calls, and answers its phone. Good for learning the controls.
 | Look | Mouse |
 | Sprint | `Shift` |
 | Jump | `Space` |
+| Crouch | `Ctrl` (toggle) |
 | Zap | Left mouse |
 | Track | `Q` |
 | Call | `E` |

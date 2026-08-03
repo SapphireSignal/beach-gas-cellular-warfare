@@ -123,6 +123,7 @@ var _visual_speed := 0.0
 var _prev_body_pos := Vector3.ZERO
 var _aim_cache: Dictionary = {}
 var _crouch := 0.0
+var _ctrl_was_down := false
 @onready var _collision: CollisionShape3D = $Collision
 
 
@@ -214,7 +215,12 @@ func _read_desktop_input() -> void:
 	if Input.is_key_pressed(KEY_A): m.x -= 1.0
 	input_move = m.limit_length(1.0)
 	input_sprint = Input.is_key_pressed(KEY_SHIFT)
-	input_crouch = Input.is_key_pressed(KEY_C) or Input.is_key_pressed(KEY_CTRL)
+	# Toggle, not hold — matching the touch button. Edge detected, so holding
+	# Ctrl down doesn't flip it every frame.
+	var ctrl_down := Input.is_key_pressed(KEY_CTRL)
+	if ctrl_down and not _ctrl_was_down:
+		input_crouch = not input_crouch
+	_ctrl_was_down = ctrl_down
 	if Input.is_key_pressed(KEY_SPACE):
 		input_jump = true
 
@@ -477,6 +483,7 @@ func on_died(killer_id: int) -> void:
 func on_respawn(pos: Vector3) -> void:
 	alive = true
 	health = MAX_HEALTH
+	input_crouch = false   # don't respawn still ducking from your last life
 	global_position = pos
 	_remote_pos = pos
 	velocity = Vector3.ZERO
