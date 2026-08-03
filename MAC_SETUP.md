@@ -13,7 +13,10 @@ something goes wrong.
 
 **Tonight**
 
-- [ ] Add your friend as a collaborator on the repo (Settings → Collaborators)
+- [ ] Sort out how he gets the code. Adding him as a collaborator
+      (Settings → Collaborators) is **not enough on its own** — cloning a
+      private repo also needs a personal access token on his Mac. Making the
+      repo public for the clone is the fast way. Decide before you sit down.
 - [ ] He installs **Xcode** from the App Store — *start this first, it's ~10GB*
 - [ ] He installs **Godot 4.7.1**, then gets the iOS export templates from
       inside it (`Editor → Manage Export Templates`)
@@ -33,11 +36,15 @@ something goes wrong.
 8. **Info tab** → `+` → add `Privacy - Local Network Usage Description`.
    **Don't skip this one — multiplayer fails silently without it.**
 9. Plug the iPhone in, unlock it, tap **Trust**.
-10. Pick the phone in Xcode's toolbar dropdown, press **▶**.
-11. First launch fails. On the phone:
+10. On the phone: `Settings → Privacy & Security → Developer Mode` → **on**,
+    then **restart the phone**. iOS 16 and newer flatly refuse to run a
+    development build without this, and the toggle only appears once the phone
+    has been plugged into a Mac running Xcode.
+11. Pick the phone in Xcode's toolbar dropdown, press **▶**.
+12. First launch fails. On the phone:
     `Settings → General → VPN & Device Management → Trust`.
-12. Open the game. Tap **Allow** when it asks about the local network.
-13. Second phone: repeat 9–12. Nothing else to redo.
+13. Open the game. Tap **Allow** when it asks about the local network.
+14. Second phone: repeat 9–13. Nothing else to redo.
 
 **Then test**
 
@@ -92,6 +99,16 @@ tomorrow is a write-off.
 ```bash
 git clone https://github.com/SapphireSignal/beach-gas-cellular-warfare.git
 ```
+
+**While the repo is private this will fail** — either a 404, or a password
+prompt that never accepts a password, because GitHub removed password auth.
+Being added as a collaborator is necessary but *not sufficient*: a private clone
+over HTTPS also needs a personal access token created on the Mac.
+
+The quickest fix standing at the counter is to make the repo public for the ten
+minutes it takes to clone, then switch it back. If you do switch it back, later
+`git pull`s from that Mac stop working — so for the every-7-days routine, either
+leave it public or set the token up properly.
 
 ### 2. Open it in Godot (2 minutes)
 
@@ -150,9 +167,15 @@ row, click the small **+**, and add:
 ### 6. Put it on a phone (5 minutes, then 2 per extra phone)
 
 1. Plug the iPhone in. Unlock it. Tap **Trust** when it asks about the computer.
-2. In Xcode's toolbar, click the device dropdown and pick the iPhone — **not** a
+2. **Turn on Developer Mode**, then restart the phone:
+   `Settings ▸ Privacy & Security ▸ Developer Mode`.
+   iOS 16 and newer will not run a development build without it. The toggle
+   doesn't exist until the phone has been plugged into a Mac running Xcode, so
+   do it in this order — plug in first, then look for it. The restart is
+   required, not optional.
+3. In Xcode's toolbar, click the device dropdown and pick the iPhone — **not** a
    simulator.
-3. Press **▶**.
+4. Press **▶**.
 
 The first launch fails with **"Untrusted Developer."** That's expected. On the
 phone:
@@ -233,6 +256,22 @@ Change the Bundle Identifier in Godot's export settings, re-export, re-open.
 
 **Free accounts allow 10 app IDs per 7 days.**
 Pick one bundle identifier and stick to it, or you'll run out.
+
+**Godot won't open — "damaged" or "unidentified developer"**
+macOS quarantines anything downloaded from the web. Right-click the app →
+**Open** → **Open** again. If it still refuses, in Terminal:
+`xattr -dr com.apple.quarantine /Applications/Godot.app`
+
+**"Unable to install — Developer Mode disabled"**
+`Settings ▸ Privacy & Security ▸ Developer Mode` on the phone, turn it on, and
+restart the phone. The toggle only appears after the phone has been plugged into
+a Mac running Xcode.
+
+**`git clone` asks for a password and rejects it**
+The repo is private. GitHub doesn't accept account passwords over HTTPS. Either
+make the repo public for the clone, or create a personal access token
+(github.com → Settings → Developer settings → Tokens) and paste that in as the
+password.
 
 **App installs but nobody can see anybody**
 1. Same WiFi?
