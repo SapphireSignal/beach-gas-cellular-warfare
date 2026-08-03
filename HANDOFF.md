@@ -6,7 +6,9 @@ Everything a new session needs to pick this up without re-deriving it.
 
 ## Where things are
 
-- **Project:** `D:\Games\LensLethal` (folder name predates the rename)
+- **Project:** `D:\Games\LensLethal` (folder name predates the rename; renaming it
+  is safe and unrelated to anything else — the repo and the game are already
+  Beach Gas)
 - **Repo:** https://github.com/SapphireSignal/beach-gas-cellular-warfare — private
 - **Godot:** `D:\Godot\Godot_v4.7.1-stable_win64_console.exe` (must stay 4.7.1)
 - **Run it:** `& "D:\Godot\Godot_v4.7.1-stable_win64.exe" --path "D:\Games\LensLethal"`

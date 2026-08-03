@@ -80,11 +80,11 @@ tracks, calls, and answers its phone. Good for learning the controls.
 ### Testing multiplayer with two windows
 
 ```bash
-LensLethal.exe -- --autohost --name=Host
+BeachGas.exe -- --autohost --name=Host
 ```
 
 ```bash
-LensLethal.exe -- --autojoin=127.0.0.1 --name=Guest
+BeachGas.exe -- --autojoin=127.0.0.1 --name=Guest
 ```
 
 The host starts the match by itself as soon as somebody joins.

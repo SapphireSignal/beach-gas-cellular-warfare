@@ -57,10 +57,10 @@ func _stop_backdrop() -> void:
 
 
 ## Lets you skip the menu when testing on one machine:
-##   LensLethal.exe -- --autohost --name=Host
-##   LensLethal.exe -- --autojoin=127.0.0.1 --name=Guest
-##   LensLethal.exe -- --practice --name=Me
-##   LensLethal.exe -- --practice --port=27100     (avoid a port already in use)
+##   BeachGas.exe -- --autohost --name=Host
+##   BeachGas.exe -- --autojoin=127.0.0.1 --name=Guest
+##   BeachGas.exe -- --practice --name=Me
+##   BeachGas.exe -- --practice --port=27100     (avoid a port already in use)
 ## The host starts the match by itself as soon as somebody joins.
 ##
 ## A command-line session that can't start quits with a failing exit code. It

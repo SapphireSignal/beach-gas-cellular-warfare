@@ -1,7 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://blenslethalmain"]
+[gd_scene load_steps=3 format=3 uid="uid://bbeachgasmain"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
-[ext_resource type="PackedScene" uid="uid://blenslethalmenu" path="res://scenes/menu.tscn" id="2_menu"]
+[ext_resource type="PackedScene" uid="uid://bbeachgasmenu" path="res://scenes/menu.tscn" id="2_menu"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")

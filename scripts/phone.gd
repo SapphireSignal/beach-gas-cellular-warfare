@@ -543,8 +543,9 @@ func _notify(target, method: StringName, arg) -> void:
 # ---------------------------------------------------------------------------
 
 ## The phone is held with its BACK toward the target and the beam leaves the
-## camera lens — the game is called Lens Lethal, so the lens should be the
-## thing that kills you. That also puts the screen where only you can see it.
+## camera lens — the lens is the thing that kills you, which is what sells this
+## as a phone rather than a gun. That also puts the screen where only you can
+## see it.
 func _build_viewmodel() -> void:
 	position = _rest_position
 	rotation_degrees = _rest_rotation

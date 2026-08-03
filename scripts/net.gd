@@ -12,7 +12,7 @@ extends Node
 ##     *report* hits, the host decides whether they count.
 
 const DEFAULT_PORT := 27015
-const DISCOVERY_MAGIC := "LENSLETHAL1"
+const DISCOVERY_MAGIC := "BEACHGAS1"
 
 ## Overridable with `--port=` so a test run can never collide with a game that's
 ## already hosting on this machine — which silently broke every headless check
