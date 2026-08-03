@@ -1,0 +1,650 @@
+[gd_scene load_steps=4 format=3 uid="uid://blenslethalmenu"]
+
+[ext_resource type="Script" path="res://scripts/menu.gd" id="1_menu"]
+[ext_resource type="Script" path="res://scripts/map_preview.gd" id="2_preview"]
+[ext_resource type="Script" path="res://scripts/character_select.gd" id="3_charselect"]
+
+[node name="Menu" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+
+[node name="Cut" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.012, 0.014, 0.02, 1)
+
+[node name="Bg" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.024, 0.028, 0.042, 0.66)
+
+[node name="Title" type="Label" parent="."]
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -450.0
+offset_top = 30.0
+offset_right = 450.0
+offset_bottom = 100.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.98, 0.96, 0.94, 1)
+theme_override_colors/font_shadow_color = Color(0.55, 0.06, 0.10, 0.85)
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 5
+theme_override_constants/shadow_outline_size = 6
+theme_override_font_sizes/font_size = 62
+text = "BEACH GAS"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="."]
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -450.0
+offset_top = 96.0
+offset_right = 450.0
+offset_bottom = 124.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.29, 0.34, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 21
+text = "C E L L U L A R   W A R F A R E"
+horizontal_alignment = 1
+
+[node name="TitleRule" type="ColorRect" parent="."]
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -190.0
+offset_top = 128.0
+offset_right = 190.0
+offset_bottom = 130.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(1, 0.29, 0.34, 0.45)
+
+[node name="Tagline" type="Label" parent="."]
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -400.0
+offset_top = 136.0
+offset_right = 400.0
+offset_bottom = 160.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.78, 0.81, 0.9, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 16
+text = "your phone is the weapon  ·  zap them, track them, call them"
+horizontal_alignment = 1
+
+[node name="MainPanel" type="VBoxContainer" parent="."]
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -220.0
+offset_top = 194.0
+offset_right = 220.0
+offset_bottom = 574.0
+grow_horizontal = 2
+theme_override_constants/separation = 14
+
+[node name="PlayingAs" type="Label" parent="MainPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.6, 0.64, 0.76, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 17
+text = "PLAYING AS  JAY"
+horizontal_alignment = 1
+
+[node name="HostBtn" type="Button" parent="MainPanel"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+text = "HOST A GAME"
+
+[node name="JoinBtn" type="Button" parent="MainPanel"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+text = "JOIN A GAME"
+
+[node name="PracticeBtn" type="Button" parent="MainPanel"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "PRACTICE  vs BOT"
+
+[node name="ExtrasRow" type="HBoxContainer" parent="MainPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CharacterBtn" type="Button" parent="MainPanel/ExtrasRow"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "CHARACTER"
+
+[node name="CustomizeBtn" type="Button" parent="MainPanel/ExtrasRow"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "PHONE"
+
+[node name="SettingsBtn" type="Button" parent="MainPanel/ExtrasRow"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "SETTINGS"
+
+[node name="CharacterPanel" type="VBoxContainer" parent="."]
+visible = false
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -380.0
+offset_top = 148.0
+offset_right = 380.0
+offset_bottom = 604.0
+grow_horizontal = 2
+theme_override_constants/separation = 10
+
+[node name="Columns" type="HBoxContainer" parent="CharacterPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 18
+
+[node name="Preview" type="SubViewportContainer" parent="CharacterPanel/Columns"]
+custom_minimum_size = Vector2(330, 0)
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("3_charselect")
+
+[node name="Right" type="VBoxContainer" parent="CharacterPanel/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="CharName" type="Label" parent="CharacterPanel/Columns/Right"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 34
+text = "Jay"
+
+[node name="CharBlurb" type="Label" parent="CharacterPanel/Columns/Right"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.68, 0.72, 0.84, 1)
+theme_override_font_sizes/font_size = 14
+autowrap_mode = 2
+
+[node name="CharGrid" type="GridContainer" parent="CharacterPanel/Columns/Right"]
+layout_mode = 2
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+columns = 3
+
+[node name="CharDoneBtn" type="Button" parent="CharacterPanel"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "DONE"
+
+[node name="SettingsPanel" type="VBoxContainer" parent="."]
+visible = false
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -370.0
+offset_top = 150.0
+offset_right = 370.0
+offset_bottom = 604.0
+grow_horizontal = 2
+theme_override_constants/separation = 8
+
+[node name="Columns" type="HBoxContainer" parent="SettingsPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 26
+
+[node name="Left" type="VBoxContainer" parent="SettingsPanel/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="GraphicsLabel" type="Label" parent="SettingsPanel/Columns/Left"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.6, 0.64, 0.76, 1)
+theme_override_font_sizes/font_size = 14
+text = "GRAPHICS QUALITY"
+
+[node name="QualityRow" type="HBoxContainer" parent="SettingsPanel/Columns/Left"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="QualityBlurb" type="Label" parent="SettingsPanel/Columns/Left"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.45, 0.48, 0.6, 1)
+theme_override_font_sizes/font_size = 12
+autowrap_mode = 2
+
+[node name="FpsLabel" type="Label" parent="SettingsPanel/Columns/Left"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.6, 0.64, 0.76, 1)
+theme_override_font_sizes/font_size = 14
+text = "FRAME RATE LIMIT"
+
+[node name="FpsRow" type="HBoxContainer" parent="SettingsPanel/Columns/Left"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ShowFpsBtn" type="Button" parent="SettingsPanel/Columns/Left"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "SHOW FPS COUNTER"
+
+[node name="MasterLabel" type="Label" parent="SettingsPanel/Columns/Left"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.6, 0.64, 0.76, 1)
+theme_override_font_sizes/font_size = 14
+text = "MASTER VOLUME"
+
+[node name="MasterSlider" type="HSlider" parent="SettingsPanel/Columns/Left"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+max_value = 1.0
+step = 0.05
+
+[node name="SfxLabel" type="Label" parent="SettingsPanel/Columns/Left"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.6, 0.64, 0.76, 1)
+theme_override_font_sizes/font_size = 14
+text = "SOUND EFFECTS"
+
+[node name="SfxSlider" type="HSlider" parent="SettingsPanel/Columns/Left"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+max_value = 1.0
+step = 0.05
+
+[node name="Right" type="VBoxContainer" parent="SettingsPanel/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="FireLabel" type="Label" parent="SettingsPanel/Columns/Right"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.6, 0.64, 0.76, 1)
+theme_override_font_sizes/font_size = 14
+text = "FIRE MODE"
+
+[node name="FireRow" type="HBoxContainer" parent="SettingsPanel/Columns/Right"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="FireBlurb" type="Label" parent="SettingsPanel/Columns/Right"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.45, 0.48, 0.6, 1)
+theme_override_font_sizes/font_size = 12
+autowrap_mode = 2
+
+[node name="AimAssistBtn" type="Button" parent="SettingsPanel/Columns/Right"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "AIM ASSIST"
+
+[node name="AssistBlurb" type="Label" parent="SettingsPanel/Columns/Right"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.45, 0.48, 0.6, 1)
+theme_override_font_sizes/font_size = 12
+text = "Touch only. Slows your drag and settles you onto a target you're already near."
+autowrap_mode = 2
+
+[node name="SensLabel" type="Label" parent="SettingsPanel/Columns/Right"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.6, 0.64, 0.76, 1)
+theme_override_font_sizes/font_size = 14
+text = "LOOK SENSITIVITY"
+
+[node name="SensSlider" type="HSlider" parent="SettingsPanel/Columns/Right"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+min_value = 0.25
+max_value = 3.0
+step = 0.05
+value = 1.0
+
+[node name="ControlsNote" type="Label" parent="SettingsPanel/Columns/Right"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.42, 0.45, 0.58, 1)
+theme_override_font_sizes/font_size = 12
+text = "On a phone: left side moves, drag the right side to look, tap the right side to fire."
+autowrap_mode = 2
+
+[node name="SettingsDoneBtn" type="Button" parent="SettingsPanel"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "DONE"
+
+[node name="CustomizePanel" type="VBoxContainer" parent="."]
+visible = false
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 168.0
+offset_right = 300.0
+offset_bottom = 560.0
+grow_horizontal = 2
+theme_override_constants/separation = 10
+
+[node name="CaseHeader" type="Label" parent="CustomizePanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.6, 0.64, 0.76, 1)
+theme_override_font_sizes/font_size = 14
+text = "CASE     everyone sees this one"
+
+[node name="CaseGrid" type="GridContainer" parent="CustomizePanel"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 4
+
+[node name="ThemeHeader" type="Label" parent="CustomizePanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.6, 0.64, 0.76, 1)
+theme_override_font_sizes/font_size = 14
+text = "PHONE THEME     your home screen, only you see it"
+
+[node name="ThemeGrid" type="GridContainer" parent="CustomizePanel"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 3
+
+[node name="CustomizeNote" type="Label" parent="CustomizePanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.42, 0.45, 0.58, 1)
+theme_override_font_sizes/font_size = 12
+text = "screen colours stay fixed on purpose: red = zap, green = track, blue = call"
+horizontal_alignment = 1
+
+[node name="CustomizeBack" type="Button" parent="CustomizePanel"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "DONE"
+
+[node name="BrowsePanel" type="VBoxContainer" parent="."]
+visible = false
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -260.0
+offset_top = 176.0
+offset_right = 260.0
+offset_bottom = 520.0
+grow_horizontal = 2
+theme_override_constants/separation = 12
+
+[node name="ScanLabel" type="Label" parent="BrowsePanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.68, 0.72, 0.85, 1)
+theme_override_font_sizes/font_size = 17
+text = "looking for games on this WiFi..."
+horizontal_alignment = 1
+
+[node name="HostList" type="VBoxContainer" parent="BrowsePanel"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Divider" type="Label" parent="BrowsePanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.45, 0.48, 0.6, 1)
+theme_override_font_sizes/font_size = 13
+text = "nothing showing up?  type the host's join code"
+horizontal_alignment = 1
+
+[node name="CodeRow" type="HBoxContainer" parent="BrowsePanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="CodeEdit" type="LineEdit" parent="BrowsePanel/CodeRow"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+placeholder_text = "1-42"
+alignment = 1
+
+[node name="CodeBtn" type="Button" parent="BrowsePanel/CodeRow"]
+custom_minimum_size = Vector2(120, 48)
+layout_mode = 2
+text = "JOIN"
+
+[node name="BackBtn" type="Button" parent="BrowsePanel"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "BACK"
+
+[node name="LobbyPanel" type="VBoxContainer" parent="."]
+visible = false
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -360.0
+offset_top = 160.0
+offset_right = 360.0
+offset_bottom = 600.0
+grow_horizontal = 2
+theme_override_constants/separation = 12
+
+[node name="CodeLabel" type="Label" parent="LobbyPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.35, 0.95, 0.75, 1)
+theme_override_font_sizes/font_size = 19
+text = "JOIN CODE"
+horizontal_alignment = 1
+
+[node name="Columns" type="HBoxContainer" parent="LobbyPanel"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="LeftCol" type="VBoxContainer" parent="LobbyPanel/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="PlayersHeader" type="Label" parent="LobbyPanel/Columns/LeftCol"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.55, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "IN THE LOBBY"
+
+[node name="PlayerList" type="VBoxContainer" parent="LobbyPanel/Columns/LeftCol"]
+custom_minimum_size = Vector2(0, 190)
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="RightCol" type="VBoxContainer" parent="LobbyPanel/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="MapHeader" type="Label" parent="LobbyPanel/Columns/RightCol"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.55, 0.58, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "MAP"
+
+[node name="MapPreview" type="Control" parent="LobbyPanel/Columns/RightCol"]
+custom_minimum_size = Vector2(0, 132)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("2_preview")
+
+[node name="MapBlurb" type="Label" parent="LobbyPanel/Columns/RightCol"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.6, 0.64, 0.76, 1)
+theme_override_font_sizes/font_size = 12
+text = "Beach Gas"
+autowrap_mode = 2
+
+[node name="MapGrid" type="GridContainer" parent="LobbyPanel/Columns/RightCol"]
+layout_mode = 2
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+columns = 2
+
+[node name="StartBtn" type="Button" parent="LobbyPanel"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+text = "START MATCH"
+
+[node name="LeaveBtn" type="Button" parent="LobbyPanel"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "LEAVE"
+
+[node name="ChangelogBtn" type="Button" parent="."]
+custom_minimum_size = Vector2(0, 30)
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -158.0
+offset_top = -74.0
+offset_right = -20.0
+offset_bottom = -44.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "CHANGELOG"
+
+[node name="VersionLabel" type="Label" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -158.0
+offset_top = -40.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.42, 0.45, 0.58, 1)
+theme_override_font_sizes/font_size = 12
+text = "v1.0.0"
+horizontal_alignment = 2
+
+[node name="ChangelogPanel" type="VBoxContainer" parent="."]
+visible = false
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -340.0
+offset_top = 150.0
+offset_right = 340.0
+offset_bottom = 604.0
+grow_horizontal = 2
+theme_override_constants/separation = 10
+
+[node name="ChangelogTitle" type="Label" parent="ChangelogPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.9)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 30
+text = "CHANGELOG"
+horizontal_alignment = 1
+
+[node name="ChangelogScroll" type="ScrollContainer" parent="ChangelogPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ChangelogList" type="VBoxContainer" parent="ChangelogPanel/ChangelogScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="ChangelogBack" type="Button" parent="ChangelogPanel"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "DONE"
+
+[node name="StatusLabel" type="Label" parent="."]
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -400.0
+offset_top = -86.0
+offset_right = 400.0
+offset_bottom = -60.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+
+[node name="NetLabel" type="Label" parent="."]
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -400.0
+offset_top = -56.0
+offset_right = 400.0
+offset_bottom = -36.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.45, 0.48, 0.6, 1)
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+
+[node name="Footer" type="Label" parent="."]
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -400.0
+offset_top = -32.0
+offset_right = 400.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.35, 0.38, 0.5, 1)
+theme_override_font_sizes/font_size = 12
+text = "everyone has to be on the same WiFi  ·  no internet needed"
+horizontal_alignment = 1

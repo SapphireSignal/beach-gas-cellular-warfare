@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3 uid="uid://blenslethalmain"]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="PackedScene" uid="uid://blenslethalmenu" path="res://scenes/menu.tscn" id="2_menu"]
+
+[node name="Main" type="Node"]
+script = ExtResource("1_main")
+
+[node name="GameRoot" type="Node3D" parent="."]
+
+[node name="HudLayer" type="CanvasLayer" parent="."]
+layer = 2
+
+[node name="MenuLayer" type="CanvasLayer" parent="."]
+layer = 3
+
+[node name="Menu" parent="MenuLayer" instance=ExtResource("2_menu")]

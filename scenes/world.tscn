@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://blenslethalworld"]
+
+[ext_resource type="Script" path="res://scripts/world.gd" id="1_world"]
+
+[node name="World" type="Node3D"]
+script = ExtResource("1_world")
+
+[node name="Players" type="Node3D" parent="."]

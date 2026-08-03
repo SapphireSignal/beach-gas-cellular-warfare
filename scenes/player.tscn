@@ -1,0 +1,30 @@
+[gd_scene load_steps=4 format=3 uid="uid://blenslethalplayer"]
+
+[ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/phone.gd" id="2_phone"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
+radius = 0.36
+height = 1.8
+
+[node name="Player" type="CharacterBody3D" groups=["players"]]
+collision_layer = 2
+collision_mask = 1
+floor_max_angle = 0.9
+script = ExtResource("1_player")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_body")
+
+[node name="Head" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.62, 0)
+
+[node name="Camera" type="Camera3D" parent="Head"]
+fov = 78.0
+near = 0.04
+far = 220.0
+
+[node name="Phone" type="Node3D" parent="Head/Camera"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.235, -0.205, -0.42)
+script = ExtResource("2_phone")

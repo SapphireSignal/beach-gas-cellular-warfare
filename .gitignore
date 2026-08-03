@@ -1,0 +1,22 @@
+# Godot's import cache and generated metadata. Rebuilt automatically on first
+# open, machine-specific, and large — never commit it.
+.godot/
+/android/
+
+# Export output.
+/build/
+/export/
+*.apk
+*.aab
+*.ipa
+*.exe
+*.pck
+*.zip
+
+# Export presets hold signing identities and local paths, so they stay local.
+export_presets.cfg
+
+# OS noise.
+.DS_Store
+Thumbs.db
+desktop.ini
