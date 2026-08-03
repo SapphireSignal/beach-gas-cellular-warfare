@@ -41,7 +41,7 @@ const ROSTER: Array[Dictionary] = [
 	},
 	{
 		"id": "roger", "name": "Roger",
-		"blurb": "Two monitors of something. Don't ask.",
+		"blurb": "Brought the laptop. Says the WiFi here is better.",
 		"female": false, "seated": true,
 		"skin": Color(0.82, 0.66, 0.54), "hair": Color(0.42, 0.40, 0.38),
 		"hair_style": "short", "shirt": Color(0.22, 0.30, 0.42), "pants": Color(0.20, 0.20, 0.24),
