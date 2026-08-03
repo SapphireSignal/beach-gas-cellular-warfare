@@ -74,7 +74,7 @@ func shadow_distance() -> float:
 	return 55.0 if quality == Quality.AWESOME else 42.0
 
 
-func msaa() -> int:
+func msaa() -> Viewport.MSAA:
 	match quality:
 		Quality.LOW: return Viewport.MSAA_DISABLED
 		Quality.AWESOME: return Viewport.MSAA_4X

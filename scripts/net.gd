@@ -21,7 +21,7 @@ static var PORT := DEFAULT_PORT
 static var DISCOVERY_PORT := DEFAULT_PORT + 1
 
 
-static func use_port(value: int) -> void:
+func use_port(value: int) -> void:
 	PORT = value
 	DISCOVERY_PORT = value + 1
 
