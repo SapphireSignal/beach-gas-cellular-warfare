@@ -39,6 +39,9 @@ var player_name := ""
 var case_index := 0
 var theme_index := 0
 var character_index := 0
+## Shown automatically the first time only. Someone picking this up cold gets
+## the rules; everybody else never sees it again unless they ask.
+var seen_how_to := false
 
 
 func _ready() -> void:
@@ -49,7 +52,7 @@ func case_color() -> Color:
 	return CASES[clampi(case_index, 0, CASES.size() - 1)]["color"]
 
 
-static func case_color_for(index: int) -> Color:
+func case_color_for(index: int) -> Color:
 	return CASES[clampi(index, 0, CASES.size() - 1)]["color"]
 
 
@@ -71,6 +74,7 @@ func load_settings() -> void:
 	case_index = int(cfg.get_value("player", "case", 0))
 	theme_index = int(cfg.get_value("player", "theme", 0))
 	character_index = int(cfg.get_value("player", "character", 0))
+	seen_how_to = bool(cfg.get_value("player", "seen_how_to", false))
 
 
 func save() -> void:
@@ -79,4 +83,5 @@ func save() -> void:
 	cfg.set_value("player", "case", case_index)
 	cfg.set_value("player", "theme", theme_index)
 	cfg.set_value("player", "character", character_index)
+	cfg.set_value("player", "seen_how_to", seen_how_to)
 	cfg.save(SETTINGS_PATH)

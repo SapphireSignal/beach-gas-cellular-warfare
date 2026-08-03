@@ -184,6 +184,14 @@ func _build_bank() -> void:
 		return _saw(180.0 * t) * exp(-t * 16.0) * 0.35
 	)
 
+	# You put somebody down. Two rising notes — deliberately distinct from the
+	# per-shot hitmarker so a kill never gets lost in a burst of hits.
+	_bank["kill"] = _render(0.34, func(t: float) -> float:
+		var first: float = sin(TAU * 880.0 * t) * exp(-t * 14.0)
+		var second: float = sin(TAU * 1320.0 * (t - 0.09)) * exp(-(t - 0.09) * 12.0) if t > 0.09 else 0.0
+		return (first * 0.5 + second * 0.6) * 0.75
+	)
+
 	# Respawn / round start.
 	_bank["spawn"] = _render(0.45, func(t: float) -> float:
 		var f: float = 300.0 + 500.0 * t / 0.45

@@ -161,6 +161,13 @@ func owns_input() -> bool:
 	return is_local or is_bot
 
 
+## Fired by whoever's health just dropped, on the shooter's copy of themselves.
+## Wrapped in a method because a signal emitted only from another instance reads
+## as unused to the parser.
+func report_hit_confirmed() -> void:
+	hit_confirmed.emit()
+
+
 ## One-shot camera kick. Small for your own shots, big for taking a hit.
 func add_shake(amount: float) -> void:
 	_shake = minf(1.0, _shake + amount)
@@ -459,7 +466,7 @@ func on_health_changed(hp: float, attacker_id: int) -> void:
 		# We're the shooter watching someone else's health drop.
 		var shooter = Net.world.local_player() if Net.world else null
 		if shooter:
-			shooter.hit_confirmed.emit()
+			shooter.report_hit_confirmed()
 			Sfx.play("hitmark", -8.0)
 
 
@@ -474,6 +481,7 @@ func on_died(killer_id: int) -> void:
 		Sfx.stop_ringing()
 		Sfx.play("death", -6.0)
 		Sfx.buzz(140)
+		Stats.record_death()
 		add_shake(0.8)
 		# Drop and roll the view so being killed is felt, not just displayed.
 		var fall := create_tween()

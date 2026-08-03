@@ -134,13 +134,13 @@ func load_settings() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) != OK:
 		return
-	quality = clampi(int(cfg.get_value("video", "quality", Quality.GOOD)), 0, 2)
+	quality = clampi(int(cfg.get_value("video", "quality", Quality.GOOD)), 0, 2) as Quality
 	fps_index = clampi(int(cfg.get_value("video", "fps", 1)), 0, FPS_OPTIONS.size() - 1)
 	show_fps = bool(cfg.get_value("video", "show_fps", true))
 	master_volume = clampf(float(cfg.get_value("audio", "master", 0.9)), 0.0, 1.0)
 	sfx_volume = clampf(float(cfg.get_value("audio", "sfx", 0.9)), 0.0, 1.0)
 	look_sensitivity = clampf(float(cfg.get_value("input", "sensitivity", 1.0)), 0.25, 3.0)
-	fire_mode = clampi(int(cfg.get_value("input", "fire_mode", Fire.TAP)), 0, 1)
+	fire_mode = clampi(int(cfg.get_value("input", "fire_mode", Fire.TAP)), 0, 1) as Fire
 	aim_assist = bool(cfg.get_value("input", "aim_assist", true))
 
 

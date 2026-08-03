@@ -131,6 +131,10 @@ func _on_left_match() -> void:
 
 
 func _back_to_menu() -> void:
+	# Snapshot the standings before the lobby is torn down, so there's always a
+	# "last game" to look at.
+	if Net.players.size() > 1:
+		Stats.record_match_end()
 	_teardown_match()
 	_start_backdrop()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE

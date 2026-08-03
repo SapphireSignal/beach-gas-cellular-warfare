@@ -145,6 +145,94 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "SETTINGS"
 
+[node name="InfoRow" type="HBoxContainer" parent="MainPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HowToBtn" type="Button" parent="MainPanel/InfoRow"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "HOW TO PLAY"
+
+[node name="LeaderboardBtn" type="Button" parent="MainPanel/InfoRow"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "RECORDS"
+
+[node name="LeaderboardPanel" type="VBoxContainer" parent="."]
+visible = false
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -360.0
+offset_top = 146.0
+offset_right = 360.0
+offset_bottom = 606.0
+grow_horizontal = 2
+theme_override_constants/separation = 10
+
+[node name="LeaderboardTitle" type="Label" parent="LeaderboardPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.92)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 30
+text = "RECORDS"
+horizontal_alignment = 1
+
+[node name="LeaderboardScroll" type="ScrollContainer" parent="LeaderboardPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="LeaderboardList" type="VBoxContainer" parent="LeaderboardPanel/LeaderboardScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="LeaderboardBack" type="Button" parent="LeaderboardPanel"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "DONE"
+
+[node name="HowToPanel" type="VBoxContainer" parent="."]
+visible = false
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -380.0
+offset_top = 146.0
+offset_right = 380.0
+offset_bottom = 606.0
+grow_horizontal = 2
+theme_override_constants/separation = 10
+
+[node name="HowToTitle" type="Label" parent="HowToPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.92)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 30
+text = "HOW TO PLAY"
+horizontal_alignment = 1
+
+[node name="HowToScroll" type="ScrollContainer" parent="HowToPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="HowToList" type="VBoxContainer" parent="HowToPanel/HowToScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="HowToBack" type="Button" parent="HowToPanel"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "GOT IT"
+
 [node name="CharacterPanel" type="VBoxContainer" parent="."]
 visible = false
 anchor_left = 0.5

@@ -69,6 +69,8 @@ var _damage_dirs: Array = []   ## [{ dir: Vector2, until: float }]
 var _connected_to = null
 var _killer_id := 0
 var _respawn_at := 0.0
+var _kill_flash := 0.0
+var _kill_name := ""
 var _scoreboard_pinned := false   ## tapped SCORE on touch
 var _scoreboard_held := false     ## holding Tab on desktop
 var _match_finished := false
@@ -101,6 +103,7 @@ func _ready() -> void:
 	quit_btn.label = "QUIT"
 	quit_btn.color = Color(0.9, 0.5, 0.45)
 
+	Net.kill_confirmed.connect(_on_kill)
 	Net.feed.connect(_on_feed)
 	Net.match_over.connect(_on_match_over)
 	Net.lobby_changed.connect(_refresh_score)
@@ -161,6 +164,7 @@ func _acquire_player() -> void:
 func _tick_timers(delta: float) -> void:
 	_flash = maxf(0.0, _flash - delta * 2.6)
 	_hitmark = maxf(0.0, _hitmark - delta * 4.0)
+	_kill_flash = maxf(0.0, _kill_flash - delta * 0.62)
 	damage_flash.modulate.a = _flash * 0.42
 	damage_flash.visible = _flash > 0.001
 
@@ -417,6 +421,16 @@ func _on_hit_confirmed() -> void:
 	_hitmark = 1.0
 
 
+## You downed somebody. Loud on purpose — a hitmarker means you connected, this
+## means it's over, and in a burst of fire those need to feel different.
+func _on_kill(victim_id: int) -> void:
+	_kill_flash = 1.0
+	_kill_name = Net.display_name(victim_id)
+	_hitmark = 1.0
+	Sfx.play("kill", -5.0)
+	Sfx.buzz(45)
+
+
 func _on_scanned(by_id: int) -> void:
 	_say("SCANNED by %s" % Net.display_name(by_id), 2.2)
 
@@ -482,6 +496,7 @@ func _draw() -> void:
 	_draw_bars()
 	_draw_perf()
 	_draw_crosshair()
+	_draw_kill_banner()
 	_draw_speed_lines()
 	_draw_damage_arcs()
 	if touch_mode and _stick_active:
@@ -683,6 +698,31 @@ func _draw_damage_arcs() -> void:
 			Color(1.0, 0.22, 0.26, 0.28 * strength), 14.0, true)
 		draw_arc(c, radius, angle - 0.30, angle + 0.30, 16,
 			Color(1.0, 0.55, 0.55, 0.85 * strength), 3.0, true)
+
+
+## Kill confirmation: a ring snapping shut around the reticle, then the name of
+## whoever you dropped. Sits above the crosshair so it never covers your aim.
+func _draw_kill_banner() -> void:
+	if _kill_flash <= 0.01:
+		return
+	var c := size * 0.5
+	var age: float = 1.0 - _kill_flash                 # 0 at the moment of the kill
+	var pop: float = clampf(age / 0.18, 0.0, 1.0)      # fast snap inward
+	var fade: float = clampf(_kill_flash / 0.55, 0.0, 1.0)
+
+	# Ring collapsing onto the crosshair.
+	var radius: float = lerpf(74.0, 34.0, pop)
+	draw_arc(c, radius, 0.0, TAU, 40, Color(1.0, 0.86, 0.35, 0.85 * fade), 3.0, true)
+	for i in 4:
+		var angle := PI * 0.25 + i * PI * 0.5
+		var dir := Vector2(cos(angle), sin(angle))
+		draw_line(c + dir * (radius - 9.0), c + dir * (radius + 9.0),
+			Color(1.0, 0.92, 0.55, 0.9 * fade), 3.0)
+
+	var font := ThemeDB.fallback_font
+	var rise: float = lerpf(0.0, -14.0, pop)
+	_centred(font, "ELIMINATED", c.y - 104.0 + rise, 26, Color(1.0, 0.86, 0.35, fade))
+	_centred(font, _kill_name, c.y - 78.0 + rise, 19, Color(1, 1, 1, 0.85 * fade))
 
 
 ## Sprint streaks. Short lines raked in from the edges, brightest at the

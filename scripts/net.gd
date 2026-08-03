@@ -52,6 +52,9 @@ signal net_error(msg: String)
 signal feed(text: String)
 signal hosts_found()
 signal left_match()
+## You put someone down. Separate from the kill feed so the HUD can react to
+## your own kills without parsing text.
+signal kill_confirmed(victim_id: int)
 
 ## peer_id -> { name: String, kills: int, deaths: int, health: float }
 var players: Dictionary = {}
@@ -149,7 +152,7 @@ func leave() -> void:
 	lobby_changed.emit()
 
 
-static func is_bot(pid: int) -> bool:
+func is_bot(pid: int) -> bool:
 	return pid >= BOT_ID_BASE
 
 
@@ -161,8 +164,11 @@ func bot_count() -> int:
 	return n
 
 
-## Solo mode: host a match against locally simulated opponents. Useful for
-## learning the controls, and for playing at all when nobody else is around.
+## Solo mode: host a private match against locally simulated opponents.
+##
+## Drops you in the normal lobby rather than starting immediately, so practice
+## gets the same map picker as a real game — and you can see the bot sitting in
+## the player list before you commit.
 func start_practice(pname: String, bots := 1) -> bool:
 	if not host_game(pname):
 		return false
@@ -174,7 +180,6 @@ func start_practice(pname: String, bots := 1) -> bool:
 		players[BOT_ID_BASE + 1 + i] = _blank_record(Characters.display_name(who),
 			(Loadout.case_index + 3 + i) % Loadout.CASES.size(), who)
 	lobby_changed.emit()
-	begin_match()
 	return true
 
 
@@ -394,7 +399,7 @@ func _pump_listener() -> void:
 		hosts_found.emit()
 
 
-static func local_addresses() -> PackedStringArray:
+func local_addresses() -> PackedStringArray:
 	var out := PackedStringArray()
 	for a in IP.get_local_addresses():
 		if a.begins_with("127.") or a.contains(":"):
@@ -404,7 +409,7 @@ static func local_addresses() -> PackedStringArray:
 
 
 ## Best guess at the address other phones on this WiFi should dial.
-static func local_ip() -> String:
+func local_ip() -> String:
 	var all := local_addresses()
 	for a in all:
 		if a.begins_with("192.168."):
@@ -416,7 +421,7 @@ static func local_ip() -> String:
 
 
 ## Short human-readable code for the common 192.168.x.y case, e.g. "1-42".
-static func join_code() -> String:
+func join_code() -> String:
 	var ip := local_ip()
 	var parts := ip.split(".")
 	if parts.size() == 4 and parts[0] == "192" and parts[1] == "168":
@@ -425,7 +430,7 @@ static func join_code() -> String:
 
 
 ## Inverse of join_code(). Also passes full IPs straight through.
-static func expand_code(text: String) -> String:
+func expand_code(text: String) -> String:
 	if text == "":
 		return ""
 	if text.count(".") == 3:
@@ -436,7 +441,7 @@ static func expand_code(text: String) -> String:
 	return ""
 
 
-static func _broadcast_addresses() -> PackedStringArray:
+func _broadcast_addresses() -> PackedStringArray:
 	var out := PackedStringArray(["255.255.255.255"])
 	# Some routers drop the global broadcast, so also target each subnet directly.
 	for a in local_addresses():
@@ -573,6 +578,8 @@ func _died(victim_id: int, killer_id: int, data: Dictionary) -> void:
 	if node:
 		node.on_died(killer_id)
 	feed.emit("%s zapped %s" % [name_of(killer_id), name_of(victim_id)])
+	if killer_id == my_id() and victim_id != my_id():
+		kill_confirmed.emit(victim_id)
 	lobby_changed.emit()
 
 
@@ -655,7 +662,7 @@ func _unique_name(base: String) -> String:
 	return base
 
 
-static func _clean_name(pname: String) -> String:
+func _clean_name(pname: String) -> String:
 	var n := pname.strip_edges()
 	if n.is_empty():
 		n = "Player"

@@ -353,8 +353,8 @@ func _muzzle_position() -> Vector3:
 	if _emitter != null and visible:
 		return _emitter.global_position
 	# Remote players fire from the phone in their hand, not their face.
-	var basis: Basis = _camera.global_transform.basis if _camera else player.global_transform.basis
-	return player.global_position + Vector3(0, 1.15, 0) + basis.x * 0.26 - basis.z * 0.3
+	var aim: Basis = _camera.global_transform.basis if _camera else player.global_transform.basis
+	return player.global_position + Vector3(0, 1.15, 0) + aim.x * 0.26 - aim.z * 0.3
 
 
 # ---------------------------------------------------------------------------

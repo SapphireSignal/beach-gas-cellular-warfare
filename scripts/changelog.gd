@@ -7,9 +7,24 @@ class_name Changelog
 ## VERSION whenever you build for the phones — that's the number people will
 ## quote at you when something breaks.
 
-const VERSION := "1.0.0"
+const VERSION := "1.1.0"
 
 const ENTRIES: Array[Dictionary] = [
+	{
+		"version": "1.1.0",
+		"title": "A second map, and knowing what you're doing",
+		"notes": [
+			"New map: Level 3 Parking. Low ceiling, a grid of pillars you can never see past, and a mezzanine deck over half of it with a ramp up the west side. Deliberately the opposite of Beach Gas.",
+			"HOW TO PLAY card, shown once on your first launch and available from the menu after that.",
+			"RECORDS: career kills, deaths, K/D, best killstreak, which characters you actually play, and the standings from your last match.",
+			"Kill confirmation — a ring snapping shut on the reticle, the name of who you dropped, and a sound that can't be mistaken for a hitmarker.",
+			"The lobby now shows which character everyone picked, in their own colour, with their phone case.",
+			"Practice drops you in the lobby instead of starting immediately, so you can pick a map and see the bot before you commit.",
+			"Crouch moved to Ctrl and toggles instead of holds.",
+			"Haptics: your phone buzzes when you're hit, when you die, when the emitter overheats, and when your in-game phone rings.",
+			"Cleared every editor warning, so a real error can't hide among them.",
+		],
+	},
 	{
 		"version": "1.0.0",
 		"title": "Beach Gas: Cellular Warfare",

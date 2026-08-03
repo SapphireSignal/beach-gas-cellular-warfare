@@ -28,7 +28,7 @@ static func build(kind: String, prop: Node3D, entry: Dictionary, rig: Node3D) ->
 # Held things — these ride in the right hand, which the rig raises and lowers.
 # ---------------------------------------------------------------------------
 
-static func _joint(prop: Node3D, rig: Node3D) -> void:
+static func _joint(_prop: Node3D, rig: Node3D) -> void:
 	var hand := _hand(rig)
 	var j := _box(hand, Vector3(0, -0.06, -0.03), Vector3(0.012, 0.012, 0.09),
 		_mat(Color(0.94, 0.92, 0.86), 0.9))
@@ -39,7 +39,7 @@ static func _joint(prop: Node3D, rig: Node3D) -> void:
 	rig.behaviour = "smoke"
 
 
-static func _monster(prop: Node3D, rig: Node3D) -> void:
+static func _monster(_prop: Node3D, rig: Node3D) -> void:
 	var hand := _hand(rig)
 	var black := _mat(Color(0.045, 0.05, 0.045), 0.30, 0.6)
 	var can := _cylinder(hand, Vector3(0, -0.082, 0), 0.036, 0.155, black)

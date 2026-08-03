@@ -305,7 +305,7 @@ func _do_rock() -> void:
 		_head.rotation_degrees.x += 10.0 - tip * 2.5
 
 
-func _do_music(delta: float) -> void:
+func _do_music(_delta: float) -> void:
 	# Head nodding on the beat, one hand tapping his thigh.
 	if _head != null:
 		_head.rotation_degrees.x += sin(_t * 4.2) * 6.0

@@ -764,10 +764,10 @@ func _build_summerleaf() -> void:
 
 
 ## A potted cannabis plant: pot, stalk, and three tiers of seven-point leaves.
-func _plant(pos: Vector3, scale: float) -> void:
+func _plant(pos: Vector3, plant_scale: float) -> void:
 	var root := Node3D.new()
 	root.position = pos
-	root.scale = Vector3.ONE * scale
+	root.scale = Vector3.ONE * plant_scale
 	root.rotation_degrees.y = randf_range(0.0, 360.0)
 	add_child(root)
 

@@ -58,6 +58,14 @@ extends Control
 @onready var map_grid: GridContainer = $LobbyPanel/Columns/RightCol/MapGrid
 @onready var start_btn: Button = $LobbyPanel/StartBtn
 @onready var leave_btn: Button = $LobbyPanel/LeaveBtn
+@onready var how_to_btn: Button = $MainPanel/InfoRow/HowToBtn
+@onready var leaderboard_btn: Button = $MainPanel/InfoRow/LeaderboardBtn
+@onready var leaderboard_panel: VBoxContainer = $LeaderboardPanel
+@onready var leaderboard_list: VBoxContainer = $LeaderboardPanel/LeaderboardScroll/LeaderboardList
+@onready var leaderboard_back: Button = $LeaderboardPanel/LeaderboardBack
+@onready var how_to_panel: VBoxContainer = $HowToPanel
+@onready var how_to_list: VBoxContainer = $HowToPanel/HowToScroll/HowToList
+@onready var how_to_back: Button = $HowToPanel/HowToBack
 @onready var changelog_btn: Button = $ChangelogBtn
 @onready var version_label: Label = $VersionLabel
 @onready var changelog_panel: VBoxContainer = $ChangelogPanel
@@ -89,6 +97,10 @@ func _ready() -> void:
 	changelog_btn.add_theme_font_size_override("font_size", 12)
 	_style(changelog_btn, Color(0.48, 0.51, 0.64))
 	_style(changelog_back, Color(0.30, 0.95, 0.55))
+	_style(how_to_btn, Color(0.35, 0.72, 1.0))
+	_style(how_to_back, Color(0.30, 0.95, 0.55))
+	_style(leaderboard_btn, Color(1.0, 0.78, 0.30))
+	_style(leaderboard_back, Color(0.30, 0.95, 0.55))
 	version_label.text = "v%s" % Changelog.VERSION
 
 	host_btn.pressed.connect(_on_host)
@@ -102,6 +114,10 @@ func _ready() -> void:
 	settings_done.pressed.connect(func(): _go("main"))
 	changelog_btn.pressed.connect(func(): _go("changelog"))
 	changelog_back.pressed.connect(func(): _go("main"))
+	how_to_btn.pressed.connect(func(): _go("howto"))
+	how_to_back.pressed.connect(func(): _go("main"))
+	leaderboard_btn.pressed.connect(func(): _go("records"))
+	leaderboard_back.pressed.connect(func(): _go("main"))
 	show_fps_btn.pressed.connect(_toggle_fps_counter)
 	aim_assist_btn.pressed.connect(_toggle_aim_assist)
 	master_slider.value_changed.connect(func(v): Settings.master_volume = v; Settings.apply_audio())
@@ -124,7 +140,15 @@ func _ready() -> void:
 	_refresh_settings()
 	_refresh_identity()
 	_build_changelog()
-	_go("main")
+	_build_how_to()
+
+	# First run gets the rules unprompted. After that it's a button.
+	if Loadout.seen_how_to:
+		_go("main")
+	else:
+		Loadout.seen_how_to = true
+		Loadout.save()
+		_go("howto")
 
 
 func _process(delta: float) -> void:
@@ -162,8 +186,8 @@ func _on_host() -> void:
 
 
 func _on_practice() -> void:
-	
-	Net.start_practice(_my_name(), 1)
+	if Net.start_practice(_my_name(), 1):
+		_go("lobby")
 
 
 func _on_join_pressed() -> void:
@@ -210,6 +234,10 @@ func _go(state: String) -> void:
 	character_panel.visible = state == "character"
 	settings_panel.visible = state == "settings"
 	changelog_panel.visible = state == "changelog"
+	how_to_panel.visible = state == "howto"
+	leaderboard_panel.visible = state == "records"
+	if state == "records":
+		_build_leaderboard()
 	# The version tag belongs on the title screen, not stamped over every panel.
 	changelog_btn.visible = state == "main"
 	version_label.visible = state == "main"
@@ -246,18 +274,54 @@ func _refresh_lobby() -> void:
 		child.queue_free()
 
 	for id in Net.players:
-		var row := Label.new()
+		var entry := Characters.get_entry(Net.character_of(int(id)))
+		var accent: Color = entry["accent"]
+
+		# One row: a bar in their character's colour, their name, their case,
+		# and who they are to you. You can read the whole lobby at a glance.
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		row.custom_minimum_size = Vector2(0, 30)
+
+		var stripe := ColorRect.new()
+		stripe.color = accent
+		stripe.custom_minimum_size = Vector2(5, 0)
+		row.add_child(stripe)
+
+		var portrait := ColorRect.new()
+		portrait.color = Color(entry["skin"])
+		portrait.custom_minimum_size = Vector2(22, 22)
+		portrait.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var hair := ColorRect.new()
+		hair.color = Color(entry["hair"])
+		hair.custom_minimum_size = Vector2(22, 7)
+		hair.position = Vector2.ZERO
+		portrait.add_child(hair)
+		row.add_child(portrait)
+
 		var who: String = str(Net.players[id].get("name", "?"))
 		var tags: Array[String] = []
-		if int(id) == 1:
-			tags.append("host")
 		if int(id) == Net.my_id():
 			tags.append("you")
-		if not tags.is_empty():
-			who += "   (%s)" % ", ".join(tags)
-		row.text = who
-		row.add_theme_font_size_override("font_size", 19)
-		row.add_theme_color_override("font_color", Color(0.92, 0.94, 1.0))
+		if int(id) == 1:
+			tags.append("host")
+		if Net.is_bot(int(id)):
+			tags.append("bot")
+
+		var label := Label.new()
+		label.text = who + ("   (%s)" % ", ".join(tags) if not tags.is_empty() else "")
+		label.add_theme_font_size_override("font_size", 18)
+		label.add_theme_color_override("font_color", Color(0.92, 0.94, 1.0))
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(label)
+
+		# Their phone case, as a dot on the right.
+		var case_dot := ColorRect.new()
+		case_dot.color = Loadout.case_color_for(Net.case_of(int(id)))
+		case_dot.custom_minimum_size = Vector2(14, 14)
+		case_dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(case_dot)
+
 		player_list.add_child(row)
 
 	var count := Net.players.size()
@@ -412,6 +476,142 @@ func _pick_character(index: int) -> void:
 	_refresh_identity()
 
 
+## Career records and the last match's standings. Rebuilt every time the panel
+## opens, so it always reflects the game you just finished.
+func _build_leaderboard() -> void:
+	for child in leaderboard_list.get_children():
+		child.queue_free()
+
+	_records_heading("CAREER")
+	_records_line("Kills", str(Stats.kills))
+	_records_line("Deaths", str(Stats.deaths))
+	_records_line("K/D", "%.2f" % Stats.kd())
+	_records_line("Matches", str(Stats.matches))
+	_records_line("Best killstreak", str(Stats.best_streak))
+	_records_line("Most kills in a match", str(Stats.best_match_kills))
+	_records_spacer()
+
+	var ranking := Stats.character_ranking()
+	if not ranking.is_empty():
+		_records_heading("WHO YOU PLAY")
+		for row in ranking:
+			var entry := Characters.get_entry(int(row["character"]))
+			_records_line("%s" % row["name"],
+				"%d kills   %d deaths" % [int(row["kills"]), int(row["deaths"])],
+				entry["accent"])
+		_records_spacer()
+
+	if Stats.last_match.is_empty():
+		_records_heading("LAST MATCH")
+		_records_line("No games yet", "play one")
+		return
+
+	_records_heading("LAST MATCH")
+	for i in Stats.last_match.size():
+		var row: Dictionary = Stats.last_match[i]
+		var entry := Characters.get_entry(int(row["character"]))
+		var label := "%d.  %s%s" % [i + 1, row["name"], "   (you)" if row.get("you", false) else ""]
+		_records_line(label, "%d kills   %d deaths" % [int(row["kills"]), int(row["deaths"])],
+			entry["accent"] if not row.get("you", false) else Color(1.0, 0.82, 0.35))
+
+
+func _records_heading(text: String) -> void:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", 17)
+	label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.35))
+	leaderboard_list.add_child(label)
+
+
+func _records_line(left: String, right: String, accent := Color(0.55, 0.58, 0.72)) -> void:
+	var row := HBoxContainer.new()
+	row.custom_minimum_size = Vector2(0, 26)
+	row.add_theme_constant_override("separation", 10)
+
+	var stripe := ColorRect.new()
+	stripe.color = accent
+	stripe.custom_minimum_size = Vector2(4, 0)
+	row.add_child(stripe)
+
+	var name_label := Label.new()
+	name_label.text = left
+	name_label.add_theme_font_size_override("font_size", 15)
+	name_label.add_theme_color_override("font_color", Color(0.86, 0.89, 0.96))
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(name_label)
+
+	var value := Label.new()
+	value.text = right
+	value.add_theme_font_size_override("font_size", 15)
+	value.add_theme_color_override("font_color", Color(0.66, 0.70, 0.82))
+	row.add_child(value)
+
+	leaderboard_list.add_child(row)
+
+
+func _records_spacer() -> void:
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(0, 12)
+	leaderboard_list.add_child(spacer)
+
+
+## The rules, for somebody who has never seen this before. Written for a
+## coworker who has been handed a phone, not for a manual.
+func _build_how_to() -> void:
+	var sections := [
+		["THE POINT", [
+			"Everyone against everyone. Zap people, they respawn, the score keeps going. There's no round to win — you just play until you're done.",
+			"Your phone is the weapon. The laser comes out of the camera lens.",
+		]],
+		["YOUR THREE APPS", [
+			"ZAP — your gun. Five hits puts someone down. Fire too fast and it overheats and locks you out for five seconds, so pace it.",
+			"TRACK — sonar. Shows everyone on your radar for three seconds. But it also tells them they've been scanned, so it's not free.",
+			"CALL — rings their phone from anywhere on the map. Walls and distance don't matter. For five seconds they're slowed and can't shoot at all, and ice covers them so everyone can see it.",
+		]],
+		["THE COMBO", [
+			"TRACK to find them, CALL to pin them, ZAP while they can't shoot back. That's the game.",
+		]],
+		["THINGS THAT GIVE YOU AWAY", [
+			"Shots are loud and you can hear which direction they came from.",
+			"A ringing phone is audible to everyone nearby, not just the victim.",
+			"Your phone screen glows in the dark, and its colour says which app you're on. Red means someone is holding a laser.",
+		]],
+		["CONTROLS ON A PHONE", [
+			"Left side of the screen moves you — the stick appears wherever your thumb lands. Push it most of the way out to run.",
+			"Drag the right side to look. Tap the right side to shoot, so your aiming thumb never has to leave it.",
+			"Buttons on the right for TRACK, CALL, JUMP and CROUCH.",
+		]],
+		["GETTING INTO A GAME", [
+			"Everyone on the same WiFi. No internet needed.",
+			"One person hits HOST. Everyone else hits JOIN and taps their name in the list.",
+			"If the list is empty, type the join code from the host's screen.",
+		]],
+	]
+
+	for child in how_to_list.get_children():
+		child.queue_free()
+
+	for section in sections:
+		var heading := Label.new()
+		heading.text = str(section[0])
+		heading.add_theme_font_size_override("font_size", 17)
+		heading.add_theme_color_override("font_color", Color(1.0, 0.82, 0.35))
+		how_to_list.add_child(heading)
+
+		for line in section[1]:
+			var body := Label.new()
+			body.text = "   %s" % line
+			body.add_theme_font_size_override("font_size", 14)
+			body.add_theme_color_override("font_color", Color(0.74, 0.78, 0.88))
+			body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			body.custom_minimum_size = Vector2(690, 0)
+			how_to_list.add_child(body)
+
+		var spacer := Control.new()
+		spacer.custom_minimum_size = Vector2(0, 12)
+		how_to_list.add_child(spacer)
+
+
 ## Built once from Changelog.ENTRIES. Newest release at the top, current one
 ## marked, each note on its own line.
 func _build_changelog() -> void:
@@ -513,7 +713,7 @@ func _refresh_settings() -> void:
 
 
 func _pick_quality(index: int) -> void:
-	Settings.quality = index
+	Settings.quality = index as Settings.Quality
 	Settings.save()
 	_refresh_settings()
 
@@ -525,7 +725,7 @@ func _pick_fps(index: int) -> void:
 
 
 func _pick_fire_mode(index: int) -> void:
-	Settings.fire_mode = index
+	Settings.fire_mode = index as Settings.Fire
 	Settings.save()
 	_refresh_settings()
 
