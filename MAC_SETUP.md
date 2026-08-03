@@ -5,6 +5,56 @@ phone like any other app until the 7-day signature expires.
 
 ---
 
+## The short version
+
+If you just want the steps, they're here. Everything below this section is the
+same list again with the reasons, the exact field names, and what to do when
+something goes wrong.
+
+**Tonight**
+
+- [ ] Add your friend as a collaborator on the repo (Settings → Collaborators)
+- [ ] He installs **Xcode** from the App Store — *start this first, it's ~10GB*
+- [ ] He installs **Godot 4.7.1**, then gets the iOS export templates from
+      inside it (`Editor → Manage Export Templates`)
+- [ ] Find a cable that fits both the iPhone and the Mac
+
+**Tomorrow, on the Mac — about 20 minutes**
+
+1. `git clone https://github.com/SapphireSignal/beach-gas-cellular-warfare.git`
+2. Open Godot → **Import** → pick `project.godot` → **Import & Edit**
+3. Press **F5**. Does the game run on the Mac? Good — the project is fine.
+4. **Project → Export → Add → iOS.** Set Bundle Identifier to
+   `com.yourname.beachgas`. Leave Team ID blank.
+5. **Export Project…** into a new empty folder.
+6. Open the `.xcodeproj` that just appeared.
+7. **Signing & Capabilities** → tick *Automatically manage signing* → pick his
+   Personal Team.
+8. **Info tab** → `+` → add `Privacy - Local Network Usage Description`.
+   **Don't skip this one — multiplayer fails silently without it.**
+9. Plug the iPhone in, unlock it, tap **Trust**.
+10. Pick the phone in Xcode's toolbar dropdown, press **▶**.
+11. First launch fails. On the phone:
+    `Settings → General → VPN & Device Management → Trust`.
+12. Open the game. Tap **Allow** when it asks about the local network.
+13. Second phone: repeat 9–12. Nothing else to redo.
+
+**Then test**
+
+- Both phones on the same WiFi
+- One taps **HOST A GAME**, the other taps **JOIN A GAME**
+- Host's name appears in a list → tap it → **START MATCH**
+- List empty? Type the **join code** from the host's screen instead
+- Still nothing? The WiFi is blocking device-to-device traffic — see the
+  troubleshooting at the bottom
+
+**Later**
+
+- Every 7 days: plug in, press ▶. 30 seconds.
+- New version: `git pull`, then redo steps 5 and 10 only.
+
+---
+
 ## Tonight — before you turn up
 
 Two of these are large downloads. If they aren't done before you sit down,
