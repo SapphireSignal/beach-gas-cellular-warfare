@@ -241,6 +241,7 @@ func _overheat() -> void:
 	overheat_until = _now() + OVERHEAT_LOCKOUT
 	if visible:
 		Sfx.play("overheat", -10.0)
+		Sfx.buzz(70)
 
 
 ## Raycast down the barrel. Returns {} on a total miss, otherwise the end point,

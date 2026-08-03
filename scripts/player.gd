@@ -420,6 +420,7 @@ func receive_call(from_id: int) -> void:
 	_call_live = true
 	if is_local:
 		Sfx.start_ringing()
+		Sfx.buzz(220)   # your real phone buzzes when your in-game phone rings
 	call_started.emit(from_id)
 
 
@@ -451,6 +452,7 @@ func on_health_changed(hp: float, attacker_id: int) -> void:
 		return
 	if is_local:
 		Sfx.play("hit", -7.0)
+		Sfx.buzz(25)
 		add_shake(0.45)
 		took_damage.emit(attacker_id)
 	if attacker_id == Net.my_id() and not is_local:
@@ -471,6 +473,7 @@ func on_died(killer_id: int) -> void:
 	if is_local:
 		Sfx.stop_ringing()
 		Sfx.play("death", -6.0)
+		Sfx.buzz(140)
 		add_shake(0.8)
 		# Drop and roll the view so being killed is felt, not just displayed.
 		var fall := create_tween()

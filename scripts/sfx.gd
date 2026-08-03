@@ -102,6 +102,15 @@ func stream(id: String) -> AudioStreamWAV:
 	return _bank.get(id)
 
 
+## Haptics. Kept deliberately sparse — a phone that buzzes constantly is a phone
+## people put down, and every buzz costs battery on a device somebody has to
+## work a shift with. Four events only, and the longest is your phone ringing,
+## which is the one place a real vibration is the joke.
+func buzz(milliseconds: int) -> void:
+	if OS.has_feature("mobile"):
+		Input.vibrate_handheld(milliseconds)
+
+
 # ---------------------------------------------------------------------------
 # Synthesis
 # ---------------------------------------------------------------------------
