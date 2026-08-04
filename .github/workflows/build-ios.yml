@@ -74,6 +74,7 @@ jobs:
 
           [preset.0.options]
 
+          application/app_store_team_id="7L7XXVB3SA"
           application/bundle_identifier="com.jay.beachgas"
           application/signature=""
           application/short_version=""
