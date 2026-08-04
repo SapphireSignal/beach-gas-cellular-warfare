@@ -112,6 +112,39 @@ func _ready() -> void:
 	Net.lobby_changed.connect(_refresh_score)
 	_refresh_score()
 
+	_apply_safe_area()
+	get_tree().root.size_changed.connect(_apply_safe_area)
+
+
+## Keep the whole HUD inside the phone's usable screen.
+##
+## An iPhone in landscape has a notch down one side and a home indicator along
+## the bottom, and iOS will happily draw underneath both. The radar sits top
+## left and ZAP sits bottom right, which is exactly where those two live.
+##
+## Insetting this Control moves every child with it, because they're all
+## anchored to it — including the stick zone, which is measured from `size`.
+## On desktop the safe area is the whole window, so every inset is zero and
+## nothing moves.
+func _apply_safe_area() -> void:
+	var window := DisplayServer.window_get_size()
+	if window.x <= 0 or window.y <= 0:
+		return
+	var safe := DisplayServer.get_display_safe_area()
+	if safe.size.x <= 0 or safe.size.y <= 0:
+		return
+
+	# The safe area comes back in real screen pixels; this Control lives in the
+	# 1280x720 stretch viewport, so the insets have to be scaled across.
+	var viewport := get_viewport_rect().size
+	var scale_x := viewport.x / float(window.x)
+	var scale_y := viewport.y / float(window.y)
+
+	offset_left = safe.position.x * scale_x
+	offset_top = safe.position.y * scale_y
+	offset_right = -float(window.x - safe.end.x) * scale_x
+	offset_bottom = -float(window.y - safe.end.y) * scale_y
+
 
 func _apply_input_mode() -> void:
 	# The buttons stay on screen in desktop mode as pure readouts — they're the
