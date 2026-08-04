@@ -155,22 +155,66 @@ Fixed this pass: the sound pool being deleted with the level, the settings-chang
 lighting regression, the spawn deadlock on a mid-load disconnect, frozen bots for
 practice guests, and the frame cap being ignored at startup on mobile.
 
+## How it gets onto a phone — READ THIS BEFORE MAC_SETUP.md
+
+**`MAC_SETUP.md` describes a route that no longer works.** Jay's only Mac is a
+2017 MacBook Pro, capped at Ventura, capped at Xcode 15.2 and the iOS 17.2 SDK.
+Godot 4.7.1's iOS export template is precompiled against the **iOS 26 SDK** and
+references `MTLTensor`, `MTLResidencySetDescriptor` and
+`NSProcessPerformanceProfile*`. It cannot be linked by that Xcode. No flag fixes
+it. **Always check Godot's template SDK requirement before choosing an Xcode.**
+
+The working route, proven 2026-08-04:
+
+1. **`.github/workflows/build-ios.yml`** builds the `.ipa` on the **`macos-26`**
+   runner (Xcode 26.6, iOS SDK 26.5). Trigger with
+   `gh workflow run build-ios.yml`, then download the `beachgas-ipa` artifact.
+2. **AltStore** installs it. AltServer runs on the 2017 MacBook — which is fine,
+   because signing and installing don't need a modern Xcode. Confirmed working
+   on a work iPhone running **iOS 26.5.2**.
+
+Three things that make the workflow work, and will silently break it if changed:
+
+- It builds **unsigned** (`CODE_SIGNING_ALLOWED=NO`). AltStore re-signs on
+  install, so no certificates or secrets belong in this repo.
+- Godot's export runs `xcodebuild` itself and fails with no certificate present.
+  That failure is expected and tolerated; we build the generated `.xcodeproj`
+  ourselves in a later step.
+- Godot writes `additional_plist_content` into the **entitlements** file, not
+  Info.plist. That breaks signing *and* drops
+  `NSLocalNetworkUsageDescription`, which silently kills all multiplayer with no
+  error. The workflow patches Info.plist with PlistBuddy after export. **Verify
+  that key is in any `.ipa` before shipping it.**
+
 ## What's next
 
-1. **Phone interruptions.** If a phone locks or a call arrives, Godot pauses and
-   the connection times out — you're dumped to the menu. On work phones this
-   will happen constantly. Still the biggest real gap, still deliberately
-   deferred until after the first hardware test.
-2. **Whatever the first phone session turns up.** Thumb reach, whether the
-   garage is too dark on a small screen, whether five-hit kills feel right
-   against a moving target, and whether shooting still stutters — Jay reported
-   it on PC, and the two per-shot costs found (the error-throwing sound pool and
-   per-shot particle node creation) are both fixed, but it has not been
-   confirmed in his hands yet.
-3. **Physics runs at 120Hz.** Halving it to 60 is the single largest remaining
-   CPU saving on a phone and it is one line in `project.godot`. Not done,
-   because it changes movement feel and doing that immediately before a first
-   hardware test would confuse the results.
+Beach Gas has now been played on a real iPhone (2026-08-04). Everything below
+comes from that session.
+
+1. **Phone interruptions.** A lock or an incoming call pauses Godot and the
+   connection times out — you're dumped to the menu. On work phones this will
+   happen constantly. **Still the biggest real gap.**
+2. **Everything is generated at runtime, and generation blocks the main
+   thread.** This is the cause of all three freezes Jay reported: ~5s grey
+   screen at launch (engine boot, `Sfx` synthesising every sound, menu build), a
+   couple of seconds on Play/Quit (level generation), and an fps drop when
+   picking a character (that character being built on tap). Fix shape is the
+   same each time: spread the work across frames and draw a progress screen.
+3. **No colour palette.** Colours are scattered as literals across `world.gd`,
+   `character_props.gd`, `hud.gd`, `phone.gd` and `characters.gd`. A palette file
+   would be the entire art direction in one place. **Constraint:** the
+   red/green/blue of ZAP/TRACK/CALL are load-bearing information players read
+   off each other across the lot — refine, never re-assign.
+4. **Safe area.** iPhone notch and home indicator aren't accounted for
+   (`DisplayServer.get_display_safe_area()`). The radar now sits top-left, which
+   in landscape is where the notch is.
+5. **A real app icon.** Currently whatever Godot generates from `icon.svg`.
+6. **Approved but not started:** a title font, art and textures, and real sound
+   to replace the synthesised bank. All would be the project's first binary
+   assets — worth knowing that "zero binary assets" is why the repo is 416 KB
+   and why the CI build is as simple as it is.
+7. **In-match settings button**, left side. Requested; settings currently only
+   exist in the menu.
 
 ## The human context
 

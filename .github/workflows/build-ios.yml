@@ -21,6 +21,9 @@ env:
 jobs:
   build:
     runs-on: macos-26
+    # Needed to publish the release and to push the regenerated manifest back.
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -146,6 +149,89 @@ jobs:
           name: beachgas-ipa
           path: ios/beachgas.ipa
           if-no-files-found: error
+
+      # ----------------------------------------------------------------------
+      # AltStore source. Everything below turns this build into something the
+      # phones can install themselves.
+      #
+      # AltStore reads a JSON manifest from a public URL and offers an Update
+      # button when the version string changes. The .ipa has to be publicly
+      # downloadable — AltStore can't authenticate — which is why the repo is
+      # public.
+      #
+      # Installing still needs AltServer reachable on the same WiFi, because
+      # AltStore doesn't sign apps itself. This removes the "Jay hands everyone
+      # a file" step, not the "Jay's laptop is in the room" one.
+      # ----------------------------------------------------------------------
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eux
+          VERSION=$(grep -E '^config/version=' project.godot | cut -d'"' -f2)
+          # Run number appended so every build is a new version. Without it
+          # AltStore sees the same 1.2.0 it already has and offers nothing.
+          BUILD="${VERSION}.${{ github.run_number }}"
+          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
+          ICON=$(find ios/Payload/beachgas.app -maxdepth 1 -name "*180x180*.png" | head -1 || true)
+          if [ -z "$ICON" ]; then
+            ICON=$(find ios/Payload/beachgas.app -maxdepth 1 -name "*.png" | head -1 || true)
+          fi
+          if [ -n "$ICON" ]; then cp "$ICON" beachgas-icon.png; fi
+          gh release create "v$BUILD" ios/beachgas.ipa ${ICON:+beachgas-icon.png} \
+            --title "Beach Gas $BUILD" \
+            --notes "Automated build from ${GITHUB_SHA}" \
+            --latest
+
+      - name: Write AltStore manifest
+        run: |
+          set -eux
+          SIZE=$(stat -f%z ios/beachgas.ipa)
+          DATE=$(date -u +%Y-%m-%d)
+          BASE="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${BUILD}"
+          cat > altstore.json <<JSON
+          {
+            "name": "Beach Gas",
+            "identifier": "com.jay.beachgas.source",
+            "subtitle": "Your phone is the weapon.",
+            "apps": [
+              {
+                "name": "Beach Gas: Cellular Warfare",
+                "bundleIdentifier": "com.jay.beachgas",
+                "developerName": "Sapphire Signal",
+                "subtitle": "Zap them, track them, call them.",
+                "localizedDescription": "A first-person duel where your phone is the weapon. Up to 8 players over local WiFi, no internet required.",
+                "iconURL": "${BASE}/beachgas-icon.png",
+                "tintColor": "E84A55",
+                "category": "games",
+                "versions": [
+                  {
+                    "version": "${BUILD}",
+                    "date": "${DATE}",
+                    "size": ${SIZE},
+                    "downloadURL": "${BASE}/beachgas.ipa",
+                    "minOSVersion": "14.0",
+                    "localizedDescription": "Automated build."
+                  }
+                ]
+              }
+            ]
+          }
+          JSON
+          python3 -m json.tool altstore.json > /dev/null   # fail loudly on bad JSON
+          cat altstore.json
+
+      - name: Commit manifest
+        run: |
+          set -eux
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add altstore.json
+          git diff --cached --quiet && echo "manifest unchanged" && exit 0
+          git commit -m "AltStore manifest for ${BUILD}"
+          git pull --rebase origin main
+          git push origin HEAD:main
 
       - name: Upload build log on failure
         if: failure()
