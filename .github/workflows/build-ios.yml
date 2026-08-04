@@ -76,6 +76,8 @@ jobs:
 
           application/app_store_team_id="7L7XXVB3SA"
           application/bundle_identifier="com.jay.beachgas"
+          application/code_sign_identity_debug="Apple Development"
+          application/code_sign_identity_release="Apple Development"
           application/signature=""
           application/short_version=""
           application/version=""
@@ -92,7 +94,13 @@ jobs:
           mkdir -p ios
           # Import first so the project has a resource cache, then export.
           "$GODOT" --headless --path . --import || true
-          "$GODOT" --headless --path . --export-release "iOS" ios/beachgas.xcodeproj
+          # Godot 4.7 doesn't just generate an Xcode project — it then runs
+          # xcodebuild itself, which fails here because the runner has no signing
+          # certificate. We only want the generated project; we build it ourselves
+          # unsigned in a later step. So the export's own failure is expected and
+          # not fatal. What matters is that the .xcodeproj exists afterwards.
+          "$GODOT" --headless --path . --export-release "iOS" ios/beachgas.xcodeproj || true
+          test -d ios/beachgas.xcodeproj || { echo "no Xcode project was generated"; exit 1; }
           find ios -maxdepth 2 -print | head -40
 
       - name: Add local network permission to Info.plist
