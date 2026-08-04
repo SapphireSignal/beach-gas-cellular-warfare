@@ -1,0 +1,148 @@
+name: Build iOS ipa
+
+# Produces an UNSIGNED .ipa for sideloading with AltStore.
+#
+# Unsigned is deliberate: AltStore strips and re-signs anything it installs with
+# the user's own certificate, so a signature here would be thrown away. It also
+# means this workflow needs no certificates, no provisioning profiles, and no
+# secrets in the repo.
+#
+# Must run on macos-26. Godot 4.7.1's iOS template links against iOS 26 APIs
+# (MTLTensor, MTLResidencySet, NSProcessPerformanceProfile), so anything older
+# fails at the link step with undefined symbols for arm64.
+
+on:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.1
+  BUNDLE_ID: com.jay.beachgas
+
+jobs:
+  build:
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i ios || true
+
+      - name: Download Godot ${{ env.GODOT_VERSION }}
+        run: |
+          set -eux
+          BASE=https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable
+          curl -fL -o godot.zip  "$BASE/Godot_v${GODOT_VERSION}-stable_macos.universal.zip"
+          curl -fL -o tpl.tpz    "$BASE/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q godot.zip
+          ls -la
+
+      - name: Install export templates
+        run: |
+          set -eux
+          DEST="$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$DEST"
+          unzip -q tpl.tpz -d tpl
+          mv tpl/templates/* "$DEST"/
+          ls "$DEST" | head -20
+
+      - name: Write export preset
+        run: |
+          cat > export_presets.cfg <<'PRESET'
+          [preset.0]
+
+          name="iOS"
+          platform="iOS"
+          runnable=true
+          advanced_options=true
+          dedicated_server=false
+          custom_features=""
+          export_filter="all_resources"
+          include_filter=""
+          exclude_filter=""
+          export_path="ios/beachgas.xcodeproj"
+          encryption_include_filters=""
+          encryption_exclude_filters=""
+          seed=0
+          encrypt_pck=false
+          encrypt_directory=false
+          script_export_mode=2
+
+          [preset.0.options]
+
+          application/bundle_identifier="com.jay.beachgas"
+          application/signature=""
+          application/short_version=""
+          application/version=""
+          application/min_ios_version="14.0"
+          application/additional_plist_content=""
+          PRESET
+          cat export_presets.cfg
+
+      - name: Export Xcode project
+        run: |
+          set -eux
+          GODOT=./Godot.app/Contents/MacOS/Godot
+          chmod +x "$GODOT"
+          mkdir -p ios
+          # Import first so the project has a resource cache, then export.
+          "$GODOT" --headless --path . --import || true
+          "$GODOT" --headless --path . --export-release "iOS" ios/beachgas.xcodeproj
+          find ios -maxdepth 2 -print | head -40
+
+      - name: Add local network permission to Info.plist
+        run: |
+          set -eux
+          # Godot writes additional_plist_content into the ENTITLEMENTS file, not
+          # Info.plist. NSLocalNetworkUsageDescription is an Info.plist key, and
+          # without it iOS 14+ silently blocks all device-to-device traffic — the
+          # lobby just stays empty with no error. So we set it here directly.
+          PLIST=$(find ios -name "*-Info.plist" -o -name "Info.plist" | head -1)
+          echo "patching: $PLIST"
+          /usr/libexec/PlistBuddy -c "Delete :NSLocalNetworkUsageDescription" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :NSLocalNetworkUsageDescription string Beach Gas uses your local network to find and play with nearby players." "$PLIST"
+          /usr/libexec/PlistBuddy -c "Print :NSLocalNetworkUsageDescription" "$PLIST"
+
+      - name: Build
+        run: |
+          set -eux
+          cd ios
+          xcodebuild \
+            -project beachgas.xcodeproj \
+            -target beachgas \
+            -configuration Release \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CONFIGURATION_BUILD_DIR="$PWD/out" \
+            build
+
+      - name: Package ipa
+        run: |
+          set -eux
+          cd ios
+          mkdir -p Payload
+          cp -R out/beachgas.app Payload/
+          zip -qry beachgas.ipa Payload
+          ls -lh beachgas.ipa
+
+      - name: Upload ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: beachgas-ipa
+          path: ios/beachgas.ipa
+          if-no-files-found: error
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-logs
+          path: |
+            ios/**/*.log
+          if-no-files-found: ignore
