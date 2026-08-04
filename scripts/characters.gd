@@ -23,7 +23,7 @@ const ROSTER: Array[Dictionary] = [
 	},
 	{
 		"id": "josh", "name": "Josh",
-		"blurb": "Out back. Says he's on his fifteen.",
+		"blurb": "Out back. Says he's on his fifteen minute break.",
 		"female": false, "seated": false,
 		"skin": Color(0.80, 0.63, 0.50), "hair": Color(0.32, 0.20, 0.12),
 		"hair_style": "curly", "shirt": Color(0.30, 0.42, 0.28), "pants": Color(0.24, 0.24, 0.28),
