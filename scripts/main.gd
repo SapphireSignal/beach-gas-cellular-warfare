@@ -21,6 +21,18 @@ var _autostart := false
 var _driven_from_cli := false
 ## `--audit`: print what the level costs to build and to draw.
 var _audit := false
+## How many players an `--autohost` run waits for before starting.
+##
+## Two by default, which is what a scripted check wants. It exists because the
+## game had never once been tested above two players — and it couldn't be: the
+## host started the moment the second peer registered, so every later guest
+## arrived into a match already in progress and was testing late-join rather
+## than a four-player game. `--min-players=4` holds the lobby open until
+## everyone's actually there.
+var _min_players := 2
+## False once a match owns the sky, so the deferred backdrop build knows not to
+## fire into a live level.
+var _want_backdrop := true
 
 
 func _ready() -> void:
@@ -29,8 +41,34 @@ func _ready() -> void:
 	Net.net_error.connect(_on_net_error)
 	Net.left_match.connect(_on_left_match)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	_start_backdrop()
+
+	# Where the grey screen at launch actually goes. Everything before this point
+	# is engine boot plus the autoloads (Sfx synthesises the whole sound bank in
+	# its _ready); the backdrop is a live 3D scene built behind the menu.
+	if "--audit" in OS.get_cmdline_user_args():
+		print("AUDIT Boot | engine+autoloads %dms" % Time.get_ticks_msec())
+
+	_start_backdrop_when_menu_is_up()
 	_handle_command_line()
+
+
+## The menu backdrop is a live 3D scene, and building it costs ~390ms on the dev
+## Mac — more on a phone. Doing that inside _ready spends it before the first
+## frame is ever drawn, so it lands as grey screen on top of the ~1.4s the
+## engine and autoloads already take.
+##
+## Waiting a frame turns it into 390ms of *visible menu* instead. The backdrop
+## fades in behind a menu that's already on screen, which is what it does when
+## you come back from a match anyway.
+##
+## The guard matters: a --practice or --autohost run starts a match immediately,
+## and without it this would build a backdrop into a live match a frame later —
+## two WorldEnvironments fighting over the sky, which is exactly what
+## _on_match_started tears the backdrop down to avoid.
+func _start_backdrop_when_menu_is_up() -> void:
+	await get_tree().process_frame
+	if _want_backdrop:
+		_start_backdrop()
 
 
 func _process(_delta: float) -> void:
@@ -40,6 +78,7 @@ func _process(_delta: float) -> void:
 
 
 func _start_backdrop() -> void:
+	_want_backdrop = true
 	if backdrop != null:
 		return
 	backdrop = Node3D.new()
@@ -49,6 +88,7 @@ func _start_backdrop() -> void:
 
 
 func _stop_backdrop() -> void:
+	_want_backdrop = false
 	if backdrop != null:
 		backdrop.queue_free()
 		backdrop = null
@@ -77,6 +117,10 @@ func _handle_command_line() -> void:
 			who = a.substr(7)
 		elif a.begins_with("--autojoin="):
 			join_target = a.substr(11)
+		elif a.begins_with("--min-players="):
+			var want := a.substr(14)
+			if want.is_valid_int():
+				_min_players = clampi(int(want), 2, Net.MAX_PLAYERS)
 		elif a.begins_with("--port="):
 			var port := a.substr(7)
 			if port.is_valid_int():
@@ -119,7 +163,7 @@ func _fail(reason: String) -> void:
 
 
 func _maybe_autostart() -> void:
-	if _autostart and Net.is_host() and not Net.in_match and Net.players.size() >= 2:
+	if _autostart and Net.is_host() and not Net.in_match and Net.players.size() >= _min_players:
 		_autostart = false
 		Net.begin_match()
 

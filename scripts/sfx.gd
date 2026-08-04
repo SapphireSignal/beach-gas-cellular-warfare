@@ -17,7 +17,18 @@ var _ring: AudioStreamPlayer
 
 
 func _ready() -> void:
+	# Every sound in the game is synthesised here, on the main thread, before the
+	# first frame is drawn — which makes it part of the grey screen at launch.
+	# Reported under --audit so the cost is a number rather than a guess.
+	var started := Time.get_ticks_usec()
 	_build_bank()
+	if "--audit" in OS.get_cmdline_user_args():
+		var ms := (Time.get_ticks_usec() - started) / 1000.0
+		var seconds := 0.0
+		for id in _bank:
+			seconds += _bank[id].data.size() / 2.0 / float(RATE)
+		print("AUDIT Sfx | bank | %d sounds, %.2fs of audio, built in %.1fms"
+			% [_bank.size(), seconds, ms])
 	for i in 8:
 		var p := AudioStreamPlayer.new()
 		p.bus = "SFX"
