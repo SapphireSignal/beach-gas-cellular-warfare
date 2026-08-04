@@ -139,7 +139,7 @@ jobs:
           test -d ios/beachgas.xcodeproj || { echo "no Xcode project was generated"; exit 1; }
           find ios -maxdepth 2 -print | head -40
 
-      - name: Add local network permission to Info.plist
+      - name: Fix up Info.plist permissions
         run: |
           set -eux
           # Godot writes additional_plist_content into the ENTITLEMENTS file, not
@@ -151,6 +151,28 @@ jobs:
           /usr/libexec/PlistBuddy -c "Delete :NSLocalNetworkUsageDescription" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :NSLocalNetworkUsageDescription string Beach Gas uses your local network to find and play with nearby players." "$PLIST"
           /usr/libexec/PlistBuddy -c "Print :NSLocalNetworkUsageDescription" "$PLIST"
+
+          # Godot's iOS export adds camera, microphone and photo library keys to
+          # every project whether it uses them or not, and ours arrive with empty
+          # descriptions. Beach Gas touches none of them — the phone is in-game
+          # geometry, not the real camera, and every sound is synthesised.
+          #
+          # Leaving them in means AltStore warns about permissions on every
+          # install, and worse, iOS could prompt a player for camera access from
+          # a game they got at work. Both are bad for no gain.
+          for KEY in NSCameraUsageDescription NSMicrophoneUsageDescription \
+                     NSPhotoLibraryUsageDescription NSPhotoLibraryAddUsageDescription; do
+            /usr/libexec/PlistBuddy -c "Delete :$KEY" "$PLIST" 2>/dev/null || true
+          done
+
+          # Prove they're gone rather than assuming the deletes landed.
+          for KEY in NSCameraUsageDescription NSMicrophoneUsageDescription \
+                     NSPhotoLibraryUsageDescription; do
+            if /usr/libexec/PlistBuddy -c "Print :$KEY" "$PLIST" >/dev/null 2>&1; then
+              echo "ERROR: $KEY still present in Info.plist"; exit 1
+            fi
+          done
+          echo "unused permission keys removed"
 
       - name: Build
         run: |
