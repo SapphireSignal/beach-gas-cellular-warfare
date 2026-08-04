@@ -258,8 +258,9 @@ func _apply_look(delta: float) -> void:
 		return
 
 	var target = aim_target(ASSIST_CONE_DEGREES) if aim_assist else null
+	var dragging := input_look != Vector2.ZERO
 
-	if input_look != Vector2.ZERO:
+	if dragging:
 		var mult := RING_LOOK_MULT if is_ringing() else 1.0
 		mult *= float(Settings.look_sensitivity)
 		if target != null:
@@ -268,7 +269,11 @@ func _apply_look(delta: float) -> void:
 		pitch = clampf(pitch - input_look.y * LOOK_SENSITIVITY * mult, -PITCH_LIMIT, PITCH_LIMIT)
 		input_look = Vector2.ZERO
 
-	if target != null:
+	# Magnetism only while the thumb is still. Pulling during a drag fights the
+	# player for control of their own camera: the assist would hold the view on
+	# a target, then hand it back the instant the target left the cone, which
+	# reads as the aim snapping away by itself.
+	if target != null and not dragging:
 		_pull_toward(target, delta)
 
 	rotation.y = yaw
@@ -286,8 +291,13 @@ func _pull_toward(target, delta: float) -> void:
 
 	# Strongest at the edge of the cone, fading to nothing once you're on them,
 	# so it never fights you for the last few pixels.
+	#
+	# This used to compute `1.0 - error / cone`, which is the opposite curve:
+	# weakest at the edge where help is wanted, strongest dead-centre where it
+	# just grabs the aim. That mismatch between the comment and the code is what
+	# made the assist feel like it was fighting you.
 	var error := absf(angle_difference(yaw, want_yaw))
-	var strength: float = clampf(1.0 - error / deg_to_rad(ASSIST_CONE_DEGREES), 0.0, 1.0)
+	var strength: float = clampf(error / deg_to_rad(ASSIST_CONE_DEGREES), 0.0, 1.0)
 	var t: float = minf(1.0, delta * ASSIST_PULL * strength)
 	yaw = lerp_angle(yaw, want_yaw, t)
 	pitch = clampf(lerpf(pitch, want_pitch, t), -PITCH_LIMIT, PITCH_LIMIT)

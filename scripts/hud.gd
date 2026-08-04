@@ -526,8 +526,11 @@ func _draw_death_screen() -> void:
 	var remaining: float = maxf(0.0, _respawn_at - _now())
 	var age: float = clampf((Net.RESPAWN_DELAY - remaining) / 0.45, 0.0, 1.0)
 
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.30, 0.02, 0.05, 0.55 * age))
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.0, 0.0, 0.0, 0.35 * age))
+	# One full-screen blend, not two. Alpha over the whole screen is pure fill
+	# rate, which is exactly what a phone GPU is short of — and the death screen
+	# was drawing two stacked passes of it every frame. Pre-mixing the red and
+	# the black into a single colour looks the same and halves the cost.
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0.13, 0.01, 0.02, 0.71 * age))
 
 	# Two bands framing the message, wiping open as it appears.
 	var band := size.x * age

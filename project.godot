@@ -48,7 +48,11 @@ pointing/emulate_touch_from_mouse=true
 
 [physics]
 
-common/physics_ticks_per_second=120
+; 60 rather than 120. Halving this is the single largest CPU saving available on
+; a phone — every character's movement, collision and IK ran twice per frame for
+; no visible benefit at this scale. Deferred until after the first hardware test
+; so it couldn't be confused with other changes; that test has now happened.
+common/physics_ticks_per_second=60
 
 [rendering]
 
