@@ -6,12 +6,19 @@ Everything a new session needs to pick this up without re-deriving it.
 
 ## Where things are
 
-- **Project:** `D:\Games\LensLethal` (folder name predates the rename; renaming it
-  is safe and unrelated to anything else — the repo and the game are already
-  Beach Gas)
-- **Repo:** https://github.com/SapphireSignal/beach-gas-cellular-warfare — private
-- **Godot:** `D:\Godot\Godot_v4.7.1-stable_win64_console.exe` (must stay 4.7.1)
-- **Run it:** `& "D:\Godot\Godot_v4.7.1-stable_win64.exe" --path "D:\Games\LensLethal"`
+**Development moved to the Mac on 2026-08-04.** This repo is now worked on there
+and only there; the Windows PC still holds Jay's other repos but is retired for
+this one. The old `D:\Games\LensLethal` path and every PowerShell workaround
+below it are gone — don't resurrect them from an older copy of this file.
+
+- **Project:** `/Users/jay/Projects/beach-gas-cellular-warfare` — a real git
+  clone. Anything in `~/Downloads` is a stale ZIP; there were six of them, and
+  the launcher pointed at a pre-CI one for a day.
+- **Repo:** https://github.com/SapphireSignal/beach-gas-cellular-warfare — public
+- **Godot:** `/Applications/Godot.app/Contents/MacOS/Godot` (must stay 4.7.1)
+- **Open the editor:** `~/Desktop/BeachGas.command`
+- **The Mac:** 2017 MacBook Pro, Ventura 13.7.8, Intel Iris Plus 640, Xcode 15.2.
+  That Xcode is why the iOS build happens in CI — see below.
 
 ## Verifying changes
 
@@ -20,20 +27,33 @@ Nothing ships without these passing. All should exit 0 with no `ERROR` or
 collide with a game already hosting on the machine — that exact collision once
 made every check pass while the game never started.
 
+Set `GODOT=/Applications/Godot.app/Contents/MacOS/Godot` first, then:
+
 ```
---headless --path . --import
---headless --path . --quit-after 1500
---headless --path . --quit-after 20000 -- --tour
---headless --path . --quit-after 4000 -- --practice --name=Me --port=27200
---headless --path . --quit-after 4000 -- --practice --map=level_three --name=Me --port=27202
+"$GODOT" --headless --path . --import
+"$GODOT" --headless --path . --quit-after 1500
+"$GODOT" --headless --path . --quit-after 20000 -- --tour
+"$GODOT" --headless --path . --quit-after 4000 -- --practice --name=Me --port=27200
+"$GODOT" --headless --path . --quit-after 4000 -- --practice --map=level_three --name=Me --port=27202
 ```
+
+All five verified green on the Mac, 2026-08-04.
 
 Two-instance multiplayer test (this has caught real bugs three times now):
 
 ```
---autohost --name=Host --port=27210            # instance 1
+--autohost --audit --name=Host --port=27210    # instance 1
 --autojoin=127.0.0.1 --name=Guest --port=27210 # instance 2, started ~4s later
 ```
+
+**Add `--audit` to the host, or this test proves nothing.** Both instances exit
+0 whether or not they ever spoke to each other — `join_game()` only returns
+false on an immediate socket error, not on a connection that never completes,
+and the game prints nothing on a successful join. What *is* proof: the host only
+calls `begin_match()` at `players.size() >= 2`, and the world is built on match
+start, so audit output means a peer really connected. A passing run ends with
+two `AUDIT World | <peer id> | grounded=true` lines — one `1`, one large random
+id. One line means the guest never arrived.
 
 CLI flags: `--autohost`, `--autojoin=<ip>`, `--practice`, `--map=<id>`,
 `--name=<x>`, `--port=<n>`, `--tour`, `--shots`, `--audit`.
@@ -59,19 +79,33 @@ whichever way it went.
   useless here** — it just reports whatever cap is set. The worst frame is the
   number that matches what a hand feels.
 
-`user://` is `%APPDATA%\Godot\app_userdata\Beach Gas- Cellular Warfare\`.
+`user://` is
+`~/Library/Application Support/Godot/app_userdata/Beach Gas- Cellular Warfare/`.
+
+**`--audit` draw numbers are meaningless headless.** No renderer means
+`draw_calls=0 objects=0 primitives=0`. The perf table further down was measured
+windowed; measure it the same way or don't compare against it.
 
 ## Traps that have already bitten
 
-1. **PowerShell `Set-Content -Encoding utf8` writes a BOM.** Godot's `.tscn`
-   parser rejects it outright. Use
-   `[System.IO.File]::WriteAllText($p, $t, (New-Object System.Text.UTF8Encoding($false)))`.
-2. **`[System.IO.File]` ignores `Set-Location`** — it uses the process working
-   directory. Always pass absolute paths.
-3. **Never pipe `gh`/`git` through `2>&1`.** PowerShell 5.1 turns their normal
-   stderr progress output into a failure and reports exit 255 on success.
-4. **Commit messages with double quotes break native arg splitting.** Write the
-   message to a file and use `git commit -F`.
+1. **Don't force `--rendering-driver opengl3`.** The default is Vulkan Forward
+   Mobile — the same renderer the iOS build ships, so the Mac shows you what the
+   phone shows you. `opengl3` drops to OpenGL Compatibility, a different path,
+   and it's the one that throws `Texture with GL ID ...: leaked N bytes` on exit.
+   The launcher carried this flag for a while; it's been removed.
+2. **The first windowed run after a fresh setup blocks on a macOS permission
+   dialog.** It looks exactly like a hang — no output, never quits, survives a
+   long timeout. It's the audio prompt waiting behind the terminal. Click it.
+   Headless runs never hit this, which is why the whole check suite passed
+   before anyone noticed.
+3. **`timeout` doesn't exist on macOS.** It's `gtimeout`, from `brew install
+   coreutils`. A script using bare `timeout` exits 127 and reads as a real
+   failure of whatever it wrapped.
+4. **`brew install` can exit 0 while installing nothing.** Ventura needs the
+   Command Line Tools (`xcode-select --install`) for any formula built from
+   source — full Xcode is not enough, Homebrew says so explicitly. Piping brew
+   through `tail` hides it, because the pipeline reports `tail`'s status. Check
+   the binary exists, not the exit code.
 5. **GDScript type inference:** `var x := <untyped expr>` fails to parse. Use an
    explicit type or leave it untyped. Same for `for x in [floats]` — write
    `for x: float in [...]`.
@@ -261,10 +295,15 @@ comes from that session.
 ## The human context
 
 Jay plays this with coworkers on shift at a gas station. **All iPhones**, nobody
-has Android. He has no Mac; a friend brings one. On a free Apple account the app
-expires every 7 days and needs the physical Mac each time, so the workflow is:
-iterate and playtest on the Windows PC, batch changes, and do occasional Mac
-sessions. See `MAC_SETUP.md`.
+has Android.
+
+The workflow as of 2026-08-04: he has the 2017 MacBook Pro himself now, and
+develops this repo on it — write, run the checks, push, let CI build the `.ipa`,
+install through AltStore. The old "iterate on Windows, batch changes, borrow a
+Mac occasionally" loop is over, and so is the every-7-days re-signing trip;
+AltStore handles renewal as long as AltServer is awake on the same WiFi. His
+Windows PC still has his other repos, just not this one. `MAC_SETUP.md`
+describes the superseded route — read the CI section above instead.
 
 Open question: whether the gas station WiFi has client isolation on. If it does,
 LAN discovery fails; fallbacks are the manual join code, then a cheap travel

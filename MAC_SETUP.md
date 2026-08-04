@@ -1,5 +1,20 @@
 # Getting Beach Gas onto the iPhones
 
+> ## ⚠️ Superseded — this route does not work any more
+>
+> Everything below assumes you can export to Xcode and press ▶ on the Mac.
+> **You can't.** Godot 4.7.1's iOS template is built against the iOS 26 SDK and
+> cannot be linked by Xcode 15.2, which is the ceiling on a 2017 MacBook Pro
+> running Ventura. No flag fixes it.
+>
+> **The route that works** is in `HANDOFF.md` → *How it gets onto a phone*: CI
+> builds the `.ipa` on a `macos-26` runner, AltStore installs it, and AltServer
+> on the old MacBook does the signing. That also ends the every-7-days cable
+> ritual described here.
+>
+> Kept for the parts that are still true — the local-network permission, the
+> Developer Mode toggle, and the client-isolation troubleshooting at the bottom.
+
 Everything here happens **once, on a Mac**. After that the app lives on the
 phone like any other app until the 7-day signature expires.
 
