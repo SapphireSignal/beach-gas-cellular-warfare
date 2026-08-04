@@ -284,7 +284,12 @@ jobs:
           # list exactly what the app's Info.plist declares and nothing more, so
           # check the two against each other rather than trusting they match —
           # a stale entry here brings the warning straight back.
-          PLIST=$(find ios/Payload -name "Info.plist" | head -1)
+          # The app bundle's own Info.plist, explicitly. A bare `find -name
+          # Info.plist | head -1` matches "Launch Screen.storyboardc/Info.plist"
+          # first, which declares no permissions and fails this check against a
+          # perfectly good build.
+          PLIST=$(ls -d ios/Payload/*.app/Info.plist | head -1)
+          echo "checking permissions in: $PLIST"
           plutil -convert json -o plist.json "$PLIST"
           python3 - <<'PY'
           import json, sys
