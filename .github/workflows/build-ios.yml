@@ -85,7 +85,7 @@ jobs:
 
           [preset.0.options]
 
-          application/app_store_team_id="7L7XXVB3SA"
+          application/app_store_team_id="CZRX4PZM2B"
           application/bundle_identifier="com.jay.beachgas"
           application/code_sign_identity_debug="Apple Development"
           application/code_sign_identity_release="Apple Development"
