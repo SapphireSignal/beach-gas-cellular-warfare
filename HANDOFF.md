@@ -129,7 +129,18 @@ windowed; measure it the same way or don't compare against it.
 7. **Don't `git checkout` a file to undo a temporary experiment** unless you're
    sure nothing else in the working tree depends on it. Doing that mid-session
    reverted a finished fix in `sfx.gd` while `main.gd` still called into it.
-8. **`ObjectDB instances were leaked at exit` under `--quit-after` is not a
+8. **The app's version must match what `altstore.json` claims.** AltStore checks
+   the installed app against the version its source promised and refuses with
+   "doesn't match the specified source" on any mismatch. The export preset left
+   `application/short_version` and `application/version` empty, so Godot stamped
+   `config/version` (`1.2.0`) while the manifest advertised `1.2.0.<run>`. The
+   version is now worked out *before* the preset is written and stamped into
+   both fields — **don't move that step back after the export.**
+
+   This survived four releases because a manual sideload skips the check
+   entirely, and every install until 2026-08-04 was a manual sideload. **A
+   release that installs by sideload proves nothing about the source route.**
+9. **`ObjectDB instances were leaked at exit` under `--quit-after` is not a
    bug.** It's 2/4/6 `AudioStreamWAV` + `AudioStreamPlaybackWAV` pairs, one per
    sound that was playing when the engine stopped the process mid-frame, about
    one run in ten. Quits initiated by game code are clean — 0 in 8 runs against
@@ -371,9 +382,21 @@ AltStore handles renewal as long as AltServer is awake on the same WiFi. His
 Windows PC still has his other repos, just not this one. `MAC_SETUP.md`
 describes the superseded route — read the CI section above instead.
 
-Open question: whether the gas station WiFi has client isolation on. If it does,
-LAN discovery fails; fallbacks are the manual join code, then a cheap travel
-router.
+**The gas station WiFi does have client isolation** — answered on site
+2026-08-04, no longer an open question. The Mac was on `BeachGas-Guest`, and a
+guest network isolates clients by design. Symptom was AltStore silently failing
+to install: it downloads, tries, fails, and the button goes back to `FREE`.
+
+Jay owns the station and **turned isolation off on that SSID**. Verified from
+the Mac: a ping sweep of `192.168.2.0/24` went from seeing only the router to
+seeing four other hosts. **That toggle is now load-bearing for two separate
+things** — AltStore signature renewal *and* the game's own UDP-broadcast LAN
+discovery. If someone turns it back on, both break with no error that explains
+why. Check it first when "multiplayer stopped working".
+
+Other SSIDs in range: `BeachGas-POS` and `Cameras` (payment and security — keep
+off both), `RUT241_D4F6` (a Teltonika router, strong signal; if it's Jay's it is
+the travel-router answer already on site), `summerleaf`.
 
 He is not a coder, but his design instincts have been consistently right — he
 caught the mobile aiming problem, the spam-fire feel, the damage tuning, the
