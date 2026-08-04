@@ -1,0 +1,31 @@
+name: Probe macOS runners
+
+# Throwaway diagnostic. Godot 4.7.1's iOS export template links against iOS 26
+# APIs (MTLTensor, NSProcessPerformanceProfile, MTLResidencySet), so the build
+# machine needs Xcode 26. This reports what each runner image actually has, so
+# we pick the right one instead of guessing.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-14, macos-15, macos-26]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Report toolchain
+        run: |
+          echo "=================== ${{ matrix.runner }} ==================="
+          sw_vers
+          echo ""
+          echo "--- Xcode apps present ---"
+          ls -1 /Applications | grep -i '^Xcode' || echo "(none found)"
+          echo ""
+          echo "--- selected xcodebuild ---"
+          xcodebuild -version || true
+          echo ""
+          echo "--- available SDKs ---"
+          xcodebuild -showsdks || true
