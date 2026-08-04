@@ -9,15 +9,15 @@
       "developerName": "Sapphire Signal",
       "subtitle": "Zap them, track them, call them.",
       "localizedDescription": "A first-person duel where your phone is the weapon. Up to 8 players over local WiFi, no internet required.",
-      "iconURL": "https://github.com/SapphireSignal/beach-gas-cellular-warfare/releases/download/v1.2.0.9/beachgas-icon.png",
+      "iconURL": "https://github.com/SapphireSignal/beach-gas-cellular-warfare/releases/download/v1.2.0.10/beachgas-icon.png",
       "tintColor": "E84A55",
       "category": "games",
       "versions": [
         {
-          "version": "1.2.0.9",
+          "version": "1.2.0.10",
           "date": "2026-08-04",
-          "size": 31711105,
-          "downloadURL": "https://github.com/SapphireSignal/beach-gas-cellular-warfare/releases/download/v1.2.0.9/beachgas.ipa",
+          "size": 31713720,
+          "downloadURL": "https://github.com/SapphireSignal/beach-gas-cellular-warfare/releases/download/v1.2.0.10/beachgas.ipa",
           "minOSVersion": "14.0",
           "localizedDescription": "Automated build."
         }
