@@ -15,11 +15,10 @@ class_name Phone
 const MODE_ZAP := 0
 const MODE_TRACK := 1
 const MODE_CALL := 2
-const MODE_COLORS := [
-	Color(1.0, 0.28, 0.32),   # zap    - red
-	Color(0.30, 1.0, 0.55),   # track  - green
-	Color(0.35, 0.70, 1.0),   # call   - blue
-]
+## Kept as an alias so the existing `Phone.MODE_COLORS[mode]` call sites in the
+## HUD, beam and radar keep working. The colours themselves live in Palette,
+## where the rule about never re-assigning the trio is written down.
+const MODE_COLORS := Palette.MODE
 
 # --- zap ---
 ## Five clean hits to put somebody down, dropping to about eight at max range.
@@ -127,7 +126,7 @@ func _update_muzzle(delta: float) -> void:
 		_emitter_mat.emission = MODE_COLORS[mode]
 		_emitter_mat.emission_energy_multiplier = 1.8 + _muzzle_glow * 9.0
 		if is_overheated():
-			_emitter_mat.emission = Color(1.0, 0.42, 0.12)
+			_emitter_mat.emission = Palette.OVERHEAT
 			_emitter_mat.emission_energy_multiplier = 0.6 + 0.4 * sin(_now() * 9.0)
 
 

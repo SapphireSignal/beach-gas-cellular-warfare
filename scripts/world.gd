@@ -245,48 +245,57 @@ func spawn_point(index: int) -> Vector3:
 # ---------------------------------------------------------------------------
 
 func _build_materials() -> void:
-	_mats["asphalt"] = _mat(Color(0.085, 0.09, 0.11), 0.95)
-	_mats["concrete"] = _mat(Color(0.42, 0.42, 0.44), 0.92)
-	_mats["curb"] = _mat(Color(0.66, 0.64, 0.60), 0.9)
-	_mats["paint"] = _mat(Color(0.80, 0.78, 0.62), 0.85)
-	_mats["paint_red"] = _mat(Color(0.72, 0.24, 0.20), 0.85)
-	_mats["wall"] = _mat(Color(0.80, 0.78, 0.73), 0.85)
-	_mats["wall_dark"] = _mat(Color(0.30, 0.34, 0.40), 0.85)
-	_mats["trim"] = _mat(Color(0.13, 0.30, 0.48), 0.6)
-	_mats["metal"] = _mat(Color(0.46, 0.48, 0.52), 0.4, 0.7)
-	_mats["dark_metal"] = _mat(Color(0.15, 0.16, 0.19), 0.45, 0.55)
-	_mats["rubber"] = _mat(Color(0.06, 0.06, 0.07), 0.95)
-	_mats["shelf"] = _mat(Color(0.58, 0.56, 0.53), 0.8)
-	_mats["stock"] = _mat(Color(0.74, 0.47, 0.29), 0.9)
-	_mats["hedge"] = _mat(Color(0.13, 0.23, 0.15), 1.0)
-	_mats["chrome"] = _mat(Color(0.82, 0.84, 0.88), 0.12, 0.95)
+	# Colours come from Palette; the roughness and metallic values stay here,
+	# because they describe how a surface behaves rather than what it looks like.
+	# The four surfaces you get close enough to for grain to matter. Scale is in
+	# tiles per metre, so 0.35 puts one asphalt tile across roughly 3m of ground.
+	_mats["asphalt"] = _textured(_mat(Palette.ASPHALT, 0.95), "asphalt", 0.35)
+	_mats["concrete"] = _textured(_mat(Palette.CONCRETE, 0.92), "concrete", 0.4)
+	_mats["curb"] = _textured(_mat(Palette.CURB, 0.9), "curb", 1.2)
+	_mats["paint"] = _mat(Palette.PAINT, 0.85)
+	_mats["paint_red"] = _mat(Palette.PAINT_RED, 0.85)
+	_mats["wall"] = _textured(_mat(Palette.WALL, 0.85), "wall", 0.6)
+	_mats["wall_dark"] = _mat(Palette.WALL_DARK, 0.85)
+	_mats["trim"] = _mat(Palette.TRIM, 0.6)
+	_mats["metal"] = _mat(Palette.METAL, 0.4, 0.7)
+	_mats["dark_metal"] = _mat(Palette.DARK_METAL, 0.45, 0.55)
+	_mats["rubber"] = _mat(Palette.RUBBER, 0.95)
+	_mats["shelf"] = _mat(Palette.SHELF, 0.8)
+	_mats["stock"] = _mat(Palette.STOCK, 0.9)
+	_mats["hedge"] = _mat(Palette.HEDGE, 1.0)
+	_mats["chrome"] = _mat(Palette.CHROME, 0.12, 0.95)
 
-	_mats["glass"] = _mat(Color(0.55, 0.72, 0.80, 0.20), 0.05, 0.2)
+	_mats["glass"] = _mat(Palette.GLASS, 0.05, 0.2)
 	_mats["glass"].transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_mats["glass"].cull_mode = BaseMaterial3D.CULL_DISABLED
 
-	_mats["car_glass"] = _mat(Color(0.12, 0.16, 0.22, 0.62), 0.05, 0.3)
+	_mats["car_glass"] = _mat(Palette.CAR_GLASS, 0.05, 0.3)
 	_mats["car_glass"].transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 
-	_mats["cooler"] = _glow(Color(0.62, 0.86, 0.95), Color(0.35, 0.75, 0.95), 1.2)
-	_mats["sign"] = _glow(Color(0.95, 0.25, 0.30), Color(1.0, 0.20, 0.26), 2.6)
-	_mats["sign_white"] = _glow(Color(0.95, 0.96, 1.0), Color(0.9, 0.94, 1.0), 1.8)
-	_mats["sign_cyan"] = _glow(Color(0.35, 0.92, 1.0), Color(0.25, 0.90, 1.0), 2.4)
-	_mats["lamp"] = _glow(Color(1.0, 0.96, 0.86), Color(1.0, 0.94, 0.80), 3.4)
-	_mats["leaf_sign"] = _glow(Color(0.42, 0.86, 0.34), Color(0.35, 0.95, 0.30), 2.8)
-	_mats["grow"] = _glow(Color(0.72, 0.42, 0.95), Color(0.78, 0.35, 1.0), 2.6)
-	_mats["plant"] = _mat(Color(0.22, 0.46, 0.20), 0.9)
-	_mats["plant_light"] = _mat(Color(0.34, 0.62, 0.26), 0.9)
-	_mats["pot"] = _mat(Color(0.52, 0.32, 0.24), 0.9)
-	_mats["wall_warm"] = _mat(Color(0.56, 0.50, 0.42), 0.88)
-	_mats["headlight"] = _glow(Color(1.0, 0.97, 0.88), Color(1.0, 0.95, 0.82), 3.2)
-	_mats["taillight"] = _glow(Color(0.95, 0.16, 0.14), Color(1.0, 0.12, 0.10), 2.2)
+	_mats["cooler"] = _glow(Palette.COOLER, Palette.COOLER_EMIT, Palette.COOLER_ENERGY)
+	_mats["sign"] = _glow(Palette.SIGN, Palette.SIGN_EMIT, Palette.SIGN_ENERGY)
+	_mats["sign_white"] = _glow(Palette.SIGN_WHITE, Palette.SIGN_WHITE_EMIT,
+		Palette.SIGN_WHITE_ENERGY)
+	_mats["sign_cyan"] = _glow(Palette.SIGN_CYAN, Palette.SIGN_CYAN_EMIT,
+		Palette.SIGN_CYAN_ENERGY)
+	_mats["lamp"] = _glow(Palette.LAMP, Palette.LAMP_EMIT, Palette.LAMP_ENERGY)
+	_mats["leaf_sign"] = _glow(Palette.LEAF_SIGN, Palette.LEAF_SIGN_EMIT,
+		Palette.LEAF_SIGN_ENERGY)
+	_mats["grow"] = _glow(Palette.GROW, Palette.GROW_EMIT, Palette.GROW_ENERGY)
+	_mats["plant"] = _mat(Palette.PLANT, 0.9)
+	_mats["plant_light"] = _mat(Palette.PLANT_LIGHT, 0.9)
+	_mats["pot"] = _mat(Palette.POT, 0.9)
+	_mats["wall_warm"] = _mat(Palette.WALL_WARM, 0.88)
+	_mats["headlight"] = _glow(Palette.HEADLIGHT, Palette.HEADLIGHT_EMIT,
+		Palette.HEADLIGHT_ENERGY)
+	_mats["taillight"] = _glow(Palette.TAILLIGHT, Palette.TAILLIGHT_EMIT,
+		Palette.TAILLIGHT_ENERGY)
 
 	# Unlit additive haze for the fake light shafts. No depth write, no shadow,
 	# no lighting — about as cheap as geometry gets, and the mobile renderer
 	# can't do real volumetrics anyway.
 	var shaft := StandardMaterial3D.new()
-	shaft.albedo_color = Color(1.0, 0.94, 0.78, 0.05)
+	shaft.albedo_color = Palette.LIGHT_SHAFT
 	shaft.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	shaft.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	shaft.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
@@ -299,10 +308,10 @@ func _build_environment() -> void:
 	# Dusk rather than night. A dark game is unplayable on a phone screen in a
 	# brightly lit gas station, which is exactly where this gets played.
 	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.07, 0.11, 0.24)
-	sky_mat.sky_horizon_color = Color(0.42, 0.32, 0.36)
-	sky_mat.ground_horizon_color = Color(0.26, 0.22, 0.26)
-	sky_mat.ground_bottom_color = Color(0.07, 0.07, 0.10)
+	sky_mat.sky_top_color = Palette.SKY_TOP
+	sky_mat.sky_horizon_color = Palette.SKY_HORIZON
+	sky_mat.ground_horizon_color = Palette.GROUND_HORIZON
+	sky_mat.ground_bottom_color = Palette.GROUND_BOTTOM
 	sky_mat.sun_angle_max = 22.0
 	sky_mat.energy_multiplier = 0.95
 
@@ -320,7 +329,7 @@ func _build_environment() -> void:
 	env.tonemap_white = 3.0
 
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.28, 0.26, 0.36)
+	env.fog_light_color = Palette.FOG_LIGHT
 	env.fog_density = 0.0042
 	env.fog_sky_affect = 0.4
 
@@ -352,7 +361,7 @@ func _build_environment() -> void:
 
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-26.0, 40.0, 0.0)
-	sun.light_color = Color(1.0, 0.72, 0.58)
+	sun.light_color = Palette.SUN
 	sun.light_energy = 0.6
 	# Real-time shadow mapping is the single most expensive thing here. Phones
 	# never get it, and Low turns it off everywhere; both compensate with
@@ -615,12 +624,12 @@ func _build_store() -> void:
 	# Ceiling panels do the lighting; two real lights do the illuminating.
 	for i in 5:
 		_box(Vector3(-21.0 + i * 4.2, 3.18, -17.0), Vector3(2.6, 0.07, 0.6), "lamp", false)
-	_lamp(Vector3(-18.0, 3.0, -17.0), Color(0.86, 0.92, 1.0), 4.0, 15.0)
-	_lamp(Vector3(-8.0, 3.0, -16.0), Color(0.86, 0.92, 1.0), 3.6, 14.0)
+	_lamp(Vector3(-18.0, 3.0, -17.0), Palette.LAMP_LIGHT, 4.0, 15.0)
+	_lamp(Vector3(-8.0, 3.0, -16.0), Palette.LAMP_LIGHT, 3.6, 14.0)
 
 	# Frontage signage, all of it well above head height and non-colliding.
 	_box(Vector3(-13.0, 2.95, south - 0.28), Vector3(9.0, 1.15, 0.22), "sign_white", false)
-	_sign_text("BEACH GAS", Vector3(-13.0, 2.97, south - 0.40), 0.58, Color(0.07, 0.24, 0.50), 0.0)
+	_sign_text("BEACH GAS", Vector3(-13.0, 2.97, south - 0.40), 0.58, Palette.SIGN_TEXT_BLUE, 0.0)
 	_box(Vector3(-20.5, 2.30, south - 0.30), Vector3(3.0, 0.5, 0.16), "sign", false)
 	_sign_text("OPEN 24H", Vector3(-20.5, 2.31, south - 0.39), 0.26, Color(1, 1, 1), 0.0)
 	_box(Vector3(-5.5, 2.30, south - 0.30), Vector3(2.6, 0.5, 0.16), "sign_cyan", false)
@@ -734,7 +743,7 @@ func _build_canopy() -> void:
 	_box(Vector3(-28.0, 8.4, 20.0), Vector3(6.4, 2.0, 0.36), "sign_white", false)
 	_box(Vector3(-28.0, 6.4, 20.0), Vector3(4.4, 1.5, 0.34), "sign", false)
 	for face in [[20.20, 0.0], [19.80, 180.0]]:
-		_sign_text("BEACH GAS", Vector3(-28.0, 8.42, face[0]), 0.74, Color(0.07, 0.24, 0.50), face[1])
+		_sign_text("BEACH GAS", Vector3(-28.0, 8.42, face[0]), 0.74, Palette.SIGN_TEXT_BLUE, face[1])
 		_sign_text("$4.19", Vector3(-28.0, 6.40, face[0]), 0.56, Color(1, 1, 1), face[1])
 
 
@@ -1202,6 +1211,44 @@ func _mat(color: Color, roughness := 0.8, metallic := 0.0) -> StandardMaterial3D
 	m.albedo_color = color
 	m.roughness = roughness
 	m.metallic = metallic
+	return m
+
+
+## Attach a generated surface from `art/gen` to a material.
+##
+## Triplanar rather than UV, and that is forced by the merge rather than chosen:
+## once `mesh_merge` collapses the level there is one material per material
+## group, shared by a 40m forecourt and a 1m crate alike, so there is no
+## per-object scale left to set. Triplanar projects in world space, so both come
+## out at the same real-world size with no UV work at all.
+##
+## `world_triplanar` keeps the projection fixed to the level rather than to each
+## object, which is what stops the texture swimming across a merged mesh.
+##
+## Costs three texture samples per pixel instead of one. That is why this is
+## applied to the handful of large surfaces you actually walk up to, and not to
+## every material in the table.
+func _textured(m: StandardMaterial3D, name: String, scale := 0.5) -> StandardMaterial3D:
+	var albedo: Texture2D = load("res://art/gen/%s_albedo.png" % name)
+	if albedo == null:
+		# Textures are build products — someone may have cloned without running
+		# tools/gen_art.py. Flat colour is a perfectly good fallback, and it is
+		# exactly what the game looked like before, so don't make it fatal.
+		push_warning("no generated texture for '%s'; using flat colour" % name)
+		return m
+
+	m.albedo_texture = albedo
+	m.normal_enabled = true
+	m.normal_texture = load("res://art/gen/%s_normal.png" % name)
+	m.roughness_texture = load("res://art/gen/%s_rough.png" % name)
+
+	# The albedo already carries the colour, so tint back to white or the palette
+	# colour gets applied twice and every surface comes out too dark.
+	m.albedo_color = Color.WHITE
+
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	m.uv1_scale = Vector3(scale, scale, scale)
 	return m
 
 

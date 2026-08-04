@@ -284,7 +284,7 @@ func _build_core() -> void:
 
 	# Interior light, spilling out of both doors.
 	_box(Vector3(cx, CEILING - 0.25, cz), Vector3(2.6, 0.09, 0.6), "lamp", false)
-	_lamp(Vector3(cx, 2.4, cz), Color(0.86, 0.92, 1.0), 3.0, 9.0)
+	_lamp(Vector3(cx, 2.4, cz), Palette.LAMP_LIGHT, 3.0, 9.0)
 
 	# Big painted level number on the outside of the core.
 	_box(Vector3(cx + 4.3, 2.1, cz - 6.4), Vector3(0.06, 1.6, 3.2), "paint", false)
