@@ -243,8 +243,21 @@ it. **Always check Godot's template SDK requirement before choosing an Xcode.**
 The working route, proven 2026-08-04:
 
 1. **`.github/workflows/build-ios.yml`** builds the `.ipa` on the **`macos-26`**
-   runner (Xcode 26.6, iOS SDK 26.5). Trigger with
-   `gh workflow run build-ios.yml`, then download the `beachgas-ipa` artifact.
+   runner (Xcode 26.6, iOS SDK 26.5). It's `workflow_dispatch` only, so it never
+   fires on a push — someone has to start it. On github.com: **Actions ▸ Build
+   iOS ipa ▸ Run workflow**, then download the `beachgas-ipa` artifact from the
+   finished run.
+
+   `gh workflow run build-ios.yml` does the same thing from the terminal.
+   **`gh` 2.97.0 is installed and logged in as `SapphireSignal`** (token in the
+   macOS keyring, git protocol SSH).
+
+   Note for whoever reinstalls it: **it did not come from Homebrew and can't.**
+   Ventura needs the Command Line Tools to build anything from source, full
+   Xcode doesn't count, and `brew install gh` exits 0 having installed nothing.
+   It's the official prebuilt `gh_<version>_macOS_amd64.zip` from
+   `github.com/cli/cli` releases, checksum-verified, dropped in
+   `/usr/local/bin`. No compiler needed.
 2. **AltStore** installs it. AltServer runs on the 2017 MacBook — which is fine,
    because signing and installing don't need a modern Xcode. Confirmed working
    on a work iPhone running **iOS 26.5.2**.
