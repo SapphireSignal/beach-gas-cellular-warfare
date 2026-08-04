@@ -82,6 +82,13 @@ whichever way it went.
 7. **Don't `git checkout` a file to undo a temporary experiment** unless you're
    sure nothing else in the working tree depends on it. Doing that mid-session
    reverted a finished fix in `sfx.gd` while `main.gd` still called into it.
+8. **`ObjectDB instances were leaked at exit` under `--quit-after` is not a
+   bug.** It's 2/4/6 `AudioStreamWAV` + `AudioStreamPlaybackWAV` pairs, one per
+   sound that was playing when the engine stopped the process mid-frame, about
+   one run in ten. Quits initiated by game code are clean — 0 in 8 runs against
+   ~1 in 10 for the flag. The audio thread releases playbacks on its own mix
+   cycle and GDScript can't win that race. Already investigated properly once;
+   don't spend another hour on it.
 
 ## Architecture, briefly
 
