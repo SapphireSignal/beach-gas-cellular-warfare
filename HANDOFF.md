@@ -56,7 +56,20 @@ two `AUDIT World | <peer id> | grounded=true` lines — one `1`, one large rando
 id. One line means the guest never arrived.
 
 CLI flags: `--autohost`, `--autojoin=<ip>`, `--practice`, `--map=<id>`,
-`--name=<x>`, `--port=<n>`, `--tour`, `--shots`, `--audit`.
+`--name=<x>`, `--port=<n>`, `--tour`, `--shots`, `--audit`, `--min-players=<n>`.
+
+**Testing more than two players needs `--min-players`.** Without it `--autohost`
+starts the moment the second peer registers, so every later guest joins a match
+already running and you are testing late-join, not a four-player game. That is
+why this was never tested above two. Four players, all in the lobby first:
+
+```
+--autohost --audit --min-players=4 --name=Host --port=27230   # then 3 guests
+```
+
+Verified 4/4 in a built world with zero errors, 2026-08-04. Frame numbers from
+that run are **not** usable — four engines on one 2017 MacBook contend for CPU,
+which is what produced a 135ms worst frame against 19ms for two.
 
 **`--practice` from the command line now plays the match**, not just the lobby.
 It used to stop at the lobby, which meant the "practice" check only ever tested
@@ -126,9 +139,15 @@ windowed; measure it the same way or don't compare against it.
 
 ## Architecture, briefly
 
-Everything — level, characters, sounds — is generated at runtime. **Zero binary
-assets.** Mobile renderer (iOS target), so no SSAO, SSIL, SDFGI or volumetric
-fog, and no custom shaders anywhere.
+Everything — level, characters, sounds — is generated at runtime. Mobile
+renderer (iOS target), so no SSAO, SSIL, SDFGI or volumetric fog, and no custom
+shaders anywhere.
+
+**"Zero binary assets" ended on 2026-08-04** and this file said it in three
+places. `art/gen` now holds generated PNG textures and the app icon. They are
+still *generated* — `tools/gen_art.py` is the source of truth and the PNGs are
+build products — but they are committed, because CI has no Python step and the
+`.ipa` needs them.
 
 - `net.gd` — autoload. LAN discovery, lobby, host-authoritative damage/score.
 - `world.gd` — base for all maps: players, materials, builders, merging.
@@ -280,29 +299,63 @@ Three things that make the workflow work, and will silently break it if changed:
 Beach Gas has now been played on a real iPhone (2026-08-04). Everything below
 comes from that session.
 
-1. **Phone interruptions.** A lock or an incoming call pauses Godot and the
-   connection times out — you're dumped to the menu. On work phones this will
-   happen constantly. **Still the biggest real gap.**
+1. ~~**Phone interruptions.**~~ **Done 2026-08-04.** A lock or a call suspends
+   the engine, the host times the client out, and the client used to land on
+   "The host left the game." `net.gd` now remembers what it joined, notices the
+   OS handing the app back, and retries for 12s behind a `RECONNECTING` banner
+   before saying anything. Both cases arrive as the same `server_disconnected`
+   signal — the resume grace window is the only thing separating them, so don't
+   remove it. **Not yet confirmed on a real phone**; it needs a lock mid-match.
 2. **Everything is generated at runtime, and generation blocks the main
-   thread.** This is the cause of all three freezes Jay reported: ~5s grey
-   screen at launch (engine boot, `Sfx` synthesising every sound, menu build), a
-   couple of seconds on Play/Quit (level generation), and an fps drop when
-   picking a character (that character being built on tap). Fix shape is the
-   same each time: spread the work across frames and draw a progress screen.
-3. **No colour palette.** Colours are scattered as literals across `world.gd`,
-   `character_props.gd`, `hud.gd`, `phone.gd` and `characters.gd`. A palette file
-   would be the entire art direction in one place. **Constraint:** the
-   red/green/blue of ZAP/TRACK/CALL are load-bearing information players read
-   off each other across the lot — refine, never re-assign.
-4. **Safe area.** iPhone notch and home indicator aren't accounted for
-   (`DisplayServer.get_display_safe_area()`). The radar now sits top-left, which
-   in landscape is where the notch is.
-5. **A real app icon.** Currently whatever Godot generates from `icon.svg`.
-6. **Approved but not started:** a title font, art and textures, and real sound
-   to replace the synthesised bank. All would be the project's first binary
-   assets — worth knowing that "zero binary assets" is why the repo is 416 KB
-   and why the CI build is as simple as it is.
-7. **In-match settings button**, left side. Requested; settings currently only
+   thread.** Cause of all three freezes Jay reported. The launch one is now
+   measured rather than guessed — `--audit` prints it:
+
+   | | Mac, 2026-08-04 |
+   |---|---|
+   | Engine boot + autoloads | 1265ms |
+   | — of which `Sfx` synthesis | ~135ms (11%) |
+   | Menu backdrop (was in `_ready`) | 388ms, **now deferred a frame** |
+
+   **`Sfx` was never the problem** — this file used to imply it was, and
+   optimising it would have been mostly wasted work. Measure before picking a
+   target here. Remaining: a couple of seconds on Play/Quit (level generation)
+   and an fps drop when picking a character (built on tap). Fix shape for both
+   is the same: spread across frames and draw a progress screen.
+3. ~~**No colour palette.**~~ **Done 2026-08-04** — `scripts/palette.gd`. It was
+   446 literals across 17 files, not the 5 this file used to claim. `world.gd`,
+   `map_level_three.gd` and `phone.gd` are migrated; `character_props.gd` (92),
+   `menu.gd` (61), `hud.gd` (56) and `characters.gd` (37) still hold their own.
+   **Constraint, still binding:** the red/green/blue of ZAP/TRACK/CALL are
+   load-bearing information players read off each other across the lot —
+   refine, never re-assign.
+4. **Joining a match already in progress is broken.** A guest who arrives after
+   `begin_match()` gets RPC failures against player nodes that don't exist on
+   their end — `Node not found: Main/GameRoot/World/Players/<id>`, then
+   `Invalid packet received`. Found 2026-08-04 with the new `--min-players`
+   flag. **Four players who are all in the lobby before the start work
+   perfectly** — 4/4 in a built world, zero errors — so this is specifically
+   late-join, not player count.
+5. **Art and textures — started 2026-08-04.** `tools/gen_art.py` generates
+   asphalt, concrete, wall and curb (albedo/normal/roughness, 512px) plus the
+   app icon, all from `palette.gd`. Deterministic; **never hand-edit the
+   outputs, fix the script and rerun.**
+
+   - **Zero binary assets is over**, deliberately. `art/gen` is ~1.7 MB of PNG,
+     2.7 MB once Godot compresses it. That was the right trade, but the claim
+     appears elsewhere in this file and in the repo description.
+   - Applied with **world-space triplanar**, forced by the merge: after
+     `mesh_merge` one material is shared by a 40m forecourt and a 1m crate, so
+     no per-object UV scale survives. Costs 3 texture samples per pixel.
+   - **The generator writes its own `.import` files.** Godot's defaults are
+     wrong here twice over — no VRAM compression (12 MB of VRAM vs 2.7) and no
+     mipmaps, without which the forecourt shimmers on every step. Don't let
+     those get regenerated with defaults.
+   - **The triplanar GPU cost has never been measured.** It needs a *windowed*
+     `--audit`; headless reports `draw_calls=0`. Still outstanding.
+
+   Still not started: a title font, and real sound to replace the synthesised
+   bank.
+6. **In-match settings button**, left side. Requested; settings currently only
    exist in the menu.
 
 ## The human context
