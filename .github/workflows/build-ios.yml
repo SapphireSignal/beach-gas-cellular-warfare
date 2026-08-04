@@ -61,6 +61,18 @@ jobs:
           mv tpl/templates/* "$DEST"/
           ls "$DEST" | head -20
 
+      # Has to happen before the preset is written, because the version has to
+      # go *into* the app. It used to be worked out after the build, at release
+      # time, so only the manifest ever knew the real number.
+      - name: Work out the build version
+        run: |
+          set -eux
+          VERSION=$(grep -E '^config/version=' project.godot | cut -d'"' -f2)
+          # Run number appended so every build is a new version. Without it
+          # AltStore sees the same 1.2.0 it already has and offers nothing.
+          BUILD="${VERSION}.${{ github.run_number }}"
+          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
+
       - name: Write export preset
         run: |
           cat > export_presets.cfg <<'PRESET'
@@ -95,6 +107,19 @@ jobs:
           application/min_ios_version="14.0"
           application/additional_plist_content=""
           PRESET
+
+          # Stamp the real version into the app. The heredoc above is quoted so
+          # nothing in it expands unexpectedly, hence patching afterwards.
+          #
+          # These two were left empty, so Godot fell back to config/version in
+          # project.godot and every build shipped as "1.2.0" while the manifest
+          # advertised "1.2.0.<run>". AltStore checks the app against what its
+          # source promised, found 1.2.0 where 1.2.0.N was claimed, and refused
+          # to install with "doesn't match the specified source". Manual
+          # sideloads skip that check, which is why this went unnoticed until
+          # somebody actually installed from the source.
+          sed -i '' "s|^application/short_version=.*|application/short_version=\"${BUILD}\"|" export_presets.cfg
+          sed -i '' "s|^application/version=.*|application/version=\"${BUILD}\"|" export_presets.cfg
           cat export_presets.cfg
 
       - name: Export Xcode project
@@ -177,11 +202,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -eux
-          VERSION=$(grep -E '^config/version=' project.godot | cut -d'"' -f2)
-          # Run number appended so every build is a new version. Without it
-          # AltStore sees the same 1.2.0 it already has and offers nothing.
-          BUILD="${VERSION}.${{ github.run_number }}"
-          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
+          # BUILD comes from the step before the export, so the number here is
+          # the same one stamped inside the app. Don't recompute it.
           ICON=$(find ios/Payload/beachgas.app -maxdepth 1 -name "*180x180*.png" | head -1 || true)
           if [ -z "$ICON" ]; then
             ICON=$(find ios/Payload/beachgas.app -maxdepth 1 -name "*.png" | head -1 || true)
