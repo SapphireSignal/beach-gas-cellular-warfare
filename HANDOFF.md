@@ -145,15 +145,57 @@ the things that matter.
    properly means removing lamps, which is a look decision — flagged, not done.
    `--audit` warns when a level goes over eight.
 
-## Current state (v1.2.0)
+## Current state
 
 Two maps, 12 characters, settings, leaderboard, career, changelog, how-to card,
-practice vs bot, haptics. All warnings cleared. Verified on PC including the
-two-instance test; **never yet run on a phone.**
+practice vs bot, haptics. `project.godot` still says **1.2.0**; the CI build
+appends the run number on top of it, so releases read `1.2.0.<n>`.
 
-Fixed this pass: the sound pool being deleted with the level, the settings-change
-lighting regression, the spawn deadlock on a mid-load disconnect, frozen bots for
-practice guests, and the frame cap being ignored at startup on mobile.
+**It has now been played on a real iPhone** (2026-08-04) — that sentence used to
+say the opposite, and everything in "What's next" comes from that session.
+
+Changed since 1.2.0, all verified with the full check suite:
+
+- Physics **120Hz → 60**. The largest CPU saving available on a phone.
+- **Aim assist**, reported as snapping away. Two causes: it pulled during an
+  active drag, fighting the player for their own camera; and its strength curve
+  was inverted against its own comment — weakest at the cone edge where help is
+  wanted, strongest dead-centre where it just grabs.
+- **HUD**: radar top-left and larger, SCORE/QUIT to the left column, CALL and
+  JUMP lowered to be reachable.
+- **Safe area** honoured, so nothing sits under the notch or home indicator.
+- **Death screen** drew two stacked full-screen alpha rects per frame; now one.
+- Jay's cigarette bags → a **slushy machine**; Josh's → **baggies and a bird**
+  the rig keeps alive.
+- Two GDScript warnings cleared, and Josh's blurb spelled out.
+
+## How updates reach the phones
+
+The whole loop, end to end:
+
+```
+push  →  GitHub Actions builds the .ipa  →  cuts a release  →
+regenerates altstore.json  →  AltStore shows Update  →  they tap it
+```
+
+- **Source URL** (public, no auth):
+  `https://raw.githubusercontent.com/SapphireSignal/beach-gas-cellular-warfare/main/altstore.json`
+- Each phone adds that source **once**, in AltStore → Browse → `+`. After that
+  it's the Update button forever.
+- **AltServer must be reachable** — Mac awake, on the same WiFi — because
+  AltStore does not sign apps itself. This is the one condition that free
+  provisioning cannot remove; only a paid account with TestFlight does.
+- Cables are needed **once per phone**, to install AltStore itself. Never again.
+- Every build appends the run number to the version. Without that AltStore sees
+  the same `1.2.0` it already has and offers nothing.
+- Builds are **serialised** (`concurrency: ios-build`). Two at once each cut a
+  release and then race to commit the manifest, leaving it pointing at whichever
+  finished first rather than the newest code. That happened once; don't undo it.
+
+**All eight of Jay's repos are public** as of 2026-08-04, with secret scanning
+and push protection enabled. Public was needed for AltStore to fetch releases
+without auth, and it removes the Actions minutes ceiling (macOS runners bill at
+10× against the private-repo quota).
 
 ## How it gets onto a phone — READ THIS BEFORE MAC_SETUP.md
 
