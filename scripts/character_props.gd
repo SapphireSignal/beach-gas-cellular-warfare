@@ -35,12 +35,17 @@ static func _joint(prop: Node3D, rig: Node3D) -> void:
 	_box(j, Vector3(0, 0, -0.052), Vector3(0.014, 0.014, 0.014),
 		_glow(Color(1.0, 0.45, 0.15), 3.0))
 
-	# On his fifteen, with the shop run already done.
-	_cigarette_bag(prop, Vector3(0.60, 0, 0.24), -22.0)
-	_cigarette_bag(prop, Vector3(0.86, 0, -0.02), 14.0)
+	# Baggies at his feet rather than a shop run.
+	_weed_bag(prop, Vector3(0.58, 0, 0.27), -22.0, 1.00)
+	_weed_bag(prop, Vector3(0.82, 0, 0.07), 15.0, 0.86)
+	_weed_bag(prop, Vector3(0.71, 0, -0.15), 48.0, 0.93)
+
+	# A bird that has decided he counts as furniture.
+	var bird := _bird(prop, Vector3(-0.215, 1.435, 0.015), 26.0)
 
 	rig.animated["hand"] = hand
 	rig.animated["smoke_origin"] = j
+	rig.animated["bird"] = bird
 	rig.behaviour = "smoke"
 
 
@@ -117,6 +122,117 @@ static func _claw(parent: Node3D, at: Vector3, height: float, depth: float,
 ## Cartons rather than loose packs: nobody at a gas station buys one packet at a
 ## time, and a carton's long flat top is what makes the bag read as full of
 ## cigarettes from across the select screen.
+## A pinched sandwich baggie with buds showing through it. Deliberately small —
+## these read as something dropped at his feet, not as the point of the pose.
+static func _weed_bag(parent: Node3D, at: Vector3, yaw: float, size: float) -> void:
+	var root := Node3D.new()
+	root.position = at
+	root.rotation_degrees.y = yaw
+	root.scale = Vector3(size, size, size)
+	parent.add_child(root)
+
+	# Barely-there plastic. At the first attempt this was alpha 0.4 and the bags
+	# rendered as plain white blocks — indistinguishable from the cigarette bags
+	# they replaced. The contents have to be the thing you see; the bag is just
+	# a sheen over them.
+	var plastic := _mat(Color(0.88, 0.94, 0.90, 0.15), 0.06)
+	plastic.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	plastic.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var seal := _mat(Color(0.55, 0.68, 0.62, 0.55), 0.24)
+	seal.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+
+	# Slumped: wider than it is tall, because it's lying on concrete.
+	_box(root, Vector3(0, 0.042, 0), Vector3(0.21, 0.084, 0.16), plastic)
+	_box(root, Vector3(0, 0.090, 0), Vector3(0.215, 0.013, 0.165), seal)
+
+	# Buds, big enough to read as the contents rather than a texture. Three
+	# tones so it doesn't flatten into one green block.
+	var greens := [Color(0.30, 0.52, 0.20), Color(0.38, 0.62, 0.26), Color(0.24, 0.43, 0.17)]
+	for i in 3:
+		var bud := _box(root, Vector3(-0.052 + i * 0.052, 0.042, -0.014 + (i % 2) * 0.028),
+			Vector3(0.062, 0.062, 0.058), _mat(greens[i], 0.90),
+			Vector3(0, -20.0 + i * 24.0, 8.0 - i * 7.0))
+		_box(bud, Vector3(0.005, 0.030, 0.006), Vector3(0.042, 0.038, 0.038),
+			_mat(greens[(i + 1) % 3], 0.92), Vector3(0, 30.0, -12.0))
+
+
+## A bird perched on a shoulder. Built in labelled pieces because the rig moves
+## it — a bird that holds perfectly still reads as a statue, and the whole point
+## of it is that Josh has stopped noticing something alive is sitting on him.
+static func _bird(parent: Node3D, at: Vector3, yaw: float) -> Dictionary:
+	var root := Node3D.new()
+	root.position = at
+	root.rotation_degrees.y = yaw
+	# Oversized on purpose. At true scale it vanished against his shoulder from
+	# where the select-screen camera sits, and a detail nobody can see is worth
+	# nothing. Reads as a small bird; measures as a slightly unreasonable one.
+	root.scale = Vector3(1.45, 1.45, 1.45)
+	parent.add_child(root)
+
+	# Bright enough to separate from a dark green shirt.
+	var feather := _mat(Color(0.30, 0.44, 0.62), 0.68)
+	var belly := _mat(Color(0.88, 0.90, 0.94), 0.76)
+	var beak_mat := _mat(Color(1.00, 0.72, 0.18), 0.50)
+	var eye := _mat(Color(0.04, 0.04, 0.06), 0.20)
+
+	var body := _box(root, Vector3(0, 0.052, 0), Vector3(0.062, 0.070, 0.098), feather)
+	_box(body, Vector3(0, -0.016, 0.012), Vector3(0.050, 0.038, 0.070), belly)
+	_box(body, Vector3(0, 0.004, -0.070), Vector3(0.030, 0.022, 0.070), feather,
+		Vector3(14.0, 0, 0))                                        # tail
+
+	var head := _box(root, Vector3(0, 0.108, 0.036), Vector3(0.050, 0.048, 0.050), feather)
+	_box(head, Vector3(0, -0.004, 0.036), Vector3(0.016, 0.013, 0.030), beak_mat)
+	for side: float in [-0.017, 0.017]:
+		_box(head, Vector3(side, 0.010, 0.022), Vector3(0.010, 0.010, 0.008), eye)
+
+	var wing_l := _box(body, Vector3(-0.034, 0.008, -0.004), Vector3(0.012, 0.046, 0.078), feather)
+	var wing_r := _box(body, Vector3(0.034, 0.008, -0.004), Vector3(0.012, 0.046, 0.078), feather)
+
+	for side: float in [-0.016, 0.016]:
+		_box(root, Vector3(side, 0.012, 0.014), Vector3(0.009, 0.024, 0.009), beak_mat)
+
+	return {"root": root, "head": head, "wing_l": wing_l, "wing_r": wing_r, "rest_y": at.y}
+
+
+## Two-hopper slushy machine, green and blue. The machine Jay spends his shift
+## standing next to, so it may as well stand next to him here.
+static func _slushy_machine(parent: Node3D, at: Vector3, yaw: float) -> void:
+	var root := Node3D.new()
+	root.position = at
+	root.rotation_degrees.y = yaw
+	parent.add_child(root)
+
+	var steel := _mat(Color(0.62, 0.64, 0.68), 0.32, 0.65)
+	var dark := _mat(Color(0.12, 0.13, 0.16), 0.45)
+	var tray := _mat(Color(0.30, 0.32, 0.36), 0.40, 0.35)
+
+	_box(root, Vector3(0, 0.200, 0), Vector3(0.62, 0.40, 0.44), dark)
+	_box(root, Vector3(0, 0.415, 0), Vector3(0.66, 0.04, 0.48), steel)
+	# Drip tray, because every one of these in the world is sticky.
+	_box(root, Vector3(0, 0.145, 0.235), Vector3(0.46, 0.022, 0.10), tray)
+
+	var flavours := [Color(0.22, 0.85, 0.36), Color(0.20, 0.52, 0.95)]
+	for i in 2:
+		var x: float = -0.155 + i * 0.310
+		var liquid := _glow(flavours[i], 0.55)
+		liquid.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		liquid.albedo_color = Color(flavours[i].r, flavours[i].g, flavours[i].b, 0.88)
+
+		var glass := _mat(Color(0.86, 0.92, 0.96, 0.20), 0.05)
+		glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		glass.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+		_box(root, Vector3(x, 0.600, 0), Vector3(0.235, 0.33, 0.235), liquid)
+		_box(root, Vector3(x, 0.625, 0), Vector3(0.260, 0.38, 0.260), glass)
+		_box(root, Vector3(x, 0.835, 0), Vector3(0.225, 0.055, 0.225), steel)
+		_cylinder(root, Vector3(x, 0.885, 0), 0.055, 0.055, steel)
+		_cylinder(root, Vector3(x, 0.600, 0), 0.028, 0.30, steel)   # auger
+		# Tap and handle on the front face.
+		_box(root, Vector3(x, 0.455, 0.138), Vector3(0.055, 0.075, 0.055), steel)
+		_box(root, Vector3(x, 0.505, 0.178), Vector3(0.030, 0.100, 0.030), dark,
+			Vector3(-22.0, 0, 0))
+
+
 static func _cigarette_bag(parent: Node3D, at: Vector3, yaw: float) -> void:
 	var root := Node3D.new()
 	root.position = at
@@ -280,9 +396,8 @@ static func _music(prop: Node3D, entry: Dictionary, rig: Node3D) -> void:
 	var ember_mat := _glow(Color(1.0, 0.42, 0.10), 0.5)
 	_cylinder(bowl, Vector3(0, 0.017, 0), 0.019, 0.008, ember_mat)
 
-	# Shop run, same as Josh's. They go on their breaks together.
-	_cigarette_bag(prop, Vector3(0.64, 0, 0.26), 26.0)
-	_cigarette_bag(prop, Vector3(0.88, 0, -0.04), -12.0)
+	# The slushy machine he is never more than a few steps from.
+	_slushy_machine(prop, Vector3(0.86, 0, 0.10), -24.0)
 
 	rig.animated["notes"] = notes
 	rig.animated["halo"] = halo_mat

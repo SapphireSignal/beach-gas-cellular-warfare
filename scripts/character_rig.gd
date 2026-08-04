@@ -169,6 +169,34 @@ func _do_smoke(delta: float) -> void:
 	if origin != null and lift > 0.75 and _smoke_timer <= 0.0:
 		_smoke_timer = 0.28
 		_puff(origin.global_position, 0.6)
+	var bird = animated.get("bird")
+	if bird != null:
+		_do_bird(bird)
+
+
+## Josh's bird. Constant small motion and the occasional flick, because a bird
+## that holds perfectly still reads as an ornament — and the joke only works if
+## it's obviously alive and he's obviously stopped noticing.
+func _do_bird(bird: Dictionary) -> void:
+	var root: Node3D = bird.get("root")
+	if root == null or not is_instance_valid(root):
+		return
+	root.position.y = float(bird.get("rest_y", 0.0)) + sin(_t * 2.6) * 0.006
+
+	var head: Node3D = bird.get("head")
+	if head != null:
+		# Snaps between held angles rather than sweeping. Birds don't pan.
+		head.rotation_degrees.y = roundf(sin(_t * 0.7) * 2.2) * 16.0
+		head.rotation_degrees.x = sin(_t * 3.1) * 4.0
+
+	# A wing shuffle every few seconds, not a flap — it isn't going anywhere.
+	var flick: float = maxf(0.0, sin(_t * 0.9) - 0.93) * 260.0
+	var wing_l: Node3D = bird.get("wing_l")
+	var wing_r: Node3D = bird.get("wing_r")
+	if wing_l != null:
+		wing_l.rotation_degrees.z = flick
+	if wing_r != null:
+		wing_r.rotation_degrees.z = -flick
 
 
 ## Jay: notes still orbiting, bong coming up to his mouth, cloud on the exhale.
