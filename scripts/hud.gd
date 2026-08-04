@@ -108,6 +108,7 @@ func _ready() -> void:
 
 	Net.kill_confirmed.connect(_on_kill)
 	Net.feed.connect(_on_feed)
+	Net.reconnecting.connect(_on_reconnecting)
 	Net.match_over.connect(_on_match_over)
 	Net.lobby_changed.connect(_refresh_score)
 	_refresh_score()
@@ -530,6 +531,21 @@ func _on_match_over(winner_id: int) -> void:
 func _say(text: String, seconds: float) -> void:
 	status_label.text = text
 	_status_timer = seconds
+
+
+## The phone was locked or took a call, and we're trying to get back into the
+## game before telling the player anything went wrong.
+##
+## Held on screen for longer than the reconnect window can last, rather than
+## timed like other status text — a banner that faded on its own would read as
+## "it worked" at exactly the moment it hadn't. Net always emits false when the
+## attempt resolves either way, so this can't get stuck.
+func _on_reconnecting(active: bool) -> void:
+	if active:
+		_say("RECONNECTING...", 999.0)
+	else:
+		status_label.text = ""
+		_status_timer = 0.0
 
 
 # ---------------------------------------------------------------------------

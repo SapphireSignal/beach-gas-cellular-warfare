@@ -363,6 +363,139 @@ def build_curb(pal, rng):
 SURFACES = [build_asphalt, build_concrete, build_wall, build_curb]
 
 
+# ---------------------------------------------------------------------------
+# App icon
+#
+# Drawn with signed-distance fields rather than polygons: every shape is "how
+# far is this pixel from the thing", which gives clean antialiased edges at any
+# size for free, and lets shapes be combined with plain arithmetic.
+#
+# The brief is a home screen at thumbnail size, so it is built from three reads
+# that survive being shrunk: a dusk sky, a black phone held upright, and the ZAP
+# beam coming off its lens. No text — a wordmark is illegible at 60px and iOS
+# prints the app name underneath anyway.
+# ---------------------------------------------------------------------------
+
+ICON_SIZE = 1024
+
+
+def _coords(size):
+    """Pixel grid in 0..1, y down."""
+    t = (np.arange(size, dtype=np.float32) + 0.5) / size
+    return np.meshgrid(t, t)          # x, y
+
+
+def _sd_round_rect(x, y, cx, cy, hw, hh, r):
+    """Distance to a rounded rectangle. Negative inside."""
+    dx = np.abs(x - cx) - (hw - r)
+    dy = np.abs(y - cy) - (hh - r)
+    outside = np.sqrt(np.maximum(dx, 0.0) ** 2 + np.maximum(dy, 0.0) ** 2)
+    inside = np.minimum(np.maximum(dx, dy), 0.0)
+    return outside + inside - r
+
+
+def _fill(rgb, mask, colour):
+    """Composite a flat colour through an alpha mask."""
+    c = np.array(colour, dtype=np.float32)[None, None, :]
+    m = mask[..., None]
+    return rgb * (1.0 - m) + c * m
+
+
+def _edge(sd, softness):
+    """Signed distance to coverage. One pixel of softness keeps it crisp."""
+    return np.clip(0.5 - sd / softness, 0.0, 1.0)
+
+
+def build_icon(pal, rng):
+    size = ICON_SIZE
+    px = 1.0 / size
+    soft = 2.0 * px
+    x, y = _coords(size)
+
+    # Sky: the game's own dusk, vertical, with the horizon glow low and warm.
+    top = np.array(pal["SKY_TOP"], dtype=np.float32)
+    horizon = np.array(pal["SKY_HORIZON"], dtype=np.float32)
+    t = np.clip(y * 1.15, 0.0, 1.0)[..., None] ** 1.4
+    rgb = top[None, None, :] * (1.0 - t) + horizon[None, None, :] * t
+
+    # Ground: the forecourt, dark, cutting across the lower third.
+    ground = _edge(0.66 - y, soft)
+    rgb = _fill(rgb, ground, pal["ASPHALT"])
+
+    # A lamp glow behind the phone, so the silhouette has something to sit on
+    # and the icon doesn't read as a black slab on a flat gradient. Pushed
+    # brighter than looks right at full size — iOS composites this against
+    # whatever wallpaper the player has, and a low-contrast icon disappears.
+    glow = np.exp(-(((x - 0.5) ** 2 + (y - 0.52) ** 2) / 0.075))
+    lamp = np.array(pal["LAMP"], dtype=np.float32)[None, None, :]
+    rgb = np.clip(rgb + lamp * (glow * 0.66)[..., None], 0.0, 1.0)
+
+    # The phone, seen from the BACK. The beam fires from the camera lens in
+    # phone.gd, so the back is the side that matters — and it keeps the icon
+    # from turning into a generic bright-screen app tile, which is what a
+    # front-facing version looked like.
+    #
+    # Smaller and lower than feels natural at full size: iOS masks icons to a
+    # squircle that eats the corners, and the beam needs room to end inside the
+    # frame rather than running off it.
+    cy = 0.60
+    body = _sd_round_rect(x, y, 0.5, cy, 0.132, 0.225, 0.040)
+    body_a = _edge(body, soft)
+    rgb = _fill(rgb, _edge(body + 0.010, soft), (0.02, 0.02, 0.03))   # rim
+
+    # A vertical sheen down the back so it reads as a solid object catching the
+    # forecourt lamps, rather than a flat cut-out.
+    sheen = np.clip(1.0 - (y - (cy - 0.22)) * 1.9, 0.0, 1.0) ** 1.6
+    back = np.array(pal["DARK_METAL"], dtype=np.float32)[None, None, :]
+    back = back * (0.72 + 0.85 * sheen)[..., None]
+    rgb = rgb * (1.0 - body_a[..., None]) + np.clip(back, 0.0, 1.0) * body_a[..., None]
+
+    # Camera module: the raised square every modern phone has, centred rather
+    # than in the corner because symmetry survives being shrunk to a thumbnail.
+    mod_y = cy - 0.135
+    module = _sd_round_rect(x, y, 0.5, mod_y, 0.062, 0.062, 0.022)
+    rgb = _fill(rgb, _edge(module, soft), (0.055, 0.058, 0.068))
+
+    # The lens itself, sitting in that module — the thing the beam comes out of.
+    lens_y = mod_y
+    lens_r = 0.030
+    lens_d = np.sqrt((x - 0.5) ** 2 + (y - lens_y) ** 2)
+    rgb = _fill(rgb, _edge(lens_d - lens_r, soft), (0.03, 0.03, 0.04))
+    # Thin bright ring, so the lens reads as glass rather than a hole.
+    ring = np.abs(lens_d - lens_r * 0.86) - 0.0035
+    rgb = _fill(rgb, _edge(ring, soft) * 0.55, (0.45, 0.47, 0.55))
+
+    zap = np.array(pal["ZAP"], dtype=np.float32)
+
+    # Beam: a cone opening upward that fades out before the top edge. The first
+    # pass ran it off the frame, which read as a crop rather than a beam.
+    reach = 0.30                       # how far up it travels before it's gone
+    up = np.clip((lens_y - y) / reach, 0.0, 1.0)
+    half_width = 0.016 + up * 0.044
+    in_beam = _edge(np.abs(x - 0.5) - half_width, soft * 2.5) * (y < lens_y)
+    # Squared falloff so it thins out well short of the edge instead of being
+    # chopped off at full strength.
+    beam = in_beam * ((1.0 - up) ** 2.0) * 1.15
+    rgb = np.clip(rgb + zap[None, None, :] * beam[..., None], 0.0, 1.0)
+
+    # Muzzle bloom at the lens itself.
+    flare = np.exp(-(((x - 0.5) ** 2 + (y - lens_y) ** 2) / 0.0020))
+    rgb = np.clip(rgb + zap[None, None, :] * (flare * 1.0)[..., None], 0.0, 1.0)
+    rgb = _fill(rgb, _edge(np.sqrt((x - 0.5) ** 2 + (y - lens_y) ** 2) - lens_r * 0.42, soft),
+                (1.0, 0.94, 0.94))
+
+    # Vignette. Pulls the eye to the middle and stops the corners competing with
+    # the home screen wallpaper behind it.
+    vig = 1.0 - 0.5 * np.clip(((x - 0.5) ** 2 + (y - 0.5) ** 2) / 0.30, 0.0, 1.0)
+    rgb = np.clip(rgb * vig[..., None], 0.0, 1.0)
+
+    path = ROOT / "icon.png"
+    written = write_png(path, rgb)
+    print("  %-10s %6.1f KB  (%dx%d, %s)"
+          % ("icon", written / 1024.0, size, size, path.name))
+    return written
+
+
 def main():
     pal = load_palette()
     print("palette: %d colours from %s" % (len(pal), PALETTE.name))
@@ -372,7 +505,9 @@ def main():
 
     print("generating %d surfaces at %dx%d:" % (len(SURFACES), SIZE, SIZE))
     total = sum(build(pal, rng) for build in SURFACES)
-    print("total: %.1f KB in %s" % (total / 1024.0, OUT.relative_to(ROOT)))
+    print("app icon:")
+    total += build_icon(pal, rng)
+    print("total: %.1f KB" % (total / 1024.0))
 
 
 if __name__ == "__main__":

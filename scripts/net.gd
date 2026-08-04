@@ -66,6 +66,11 @@ signal left_match()
 ## your own kills without parsing text.
 signal kill_confirmed(victim_id: int)
 
+## Raised while we're trying to get back into a game the phone dropped us from.
+## The HUD draws a banner off this rather than the player being dumped to the
+## menu with no explanation.
+signal reconnecting(active: bool)
+
 ## peer_id -> { name: String, kills: int, deaths: int, health: float }
 var players: Dictionary = {}
 var local_name := "Player"
@@ -91,6 +96,35 @@ var _broadcast_targets: PackedStringArray = []
 var _listener: UDPServer = null
 var _beacon_accum := 0.0
 
+# --- surviving a phone interruption -----------------------------------------
+#
+# A lock, an incoming call or a switch to another app suspends the whole engine.
+# ENet keeps no packets flowing while that happens, the host times the client
+# out, and on the way back the client gets `server_disconnected` — which used to
+# drop straight to the menu with "The host left the game." On a work phone,
+# during a shift, that happens constantly and it always reads as a crash.
+#
+# So: remember what we joined, notice we were suspended, and quietly try to get
+# back in before saying anything to the player.
+
+## Where to aim a reconnect. Only ever set for clients — a host has nothing to
+## rejoin, and practice games have no network at all.
+var _rejoin_ip := ""
+## Ticks (msec) when the OS handed us back. 0 when we haven't been suspended.
+var _resumed_at_ms := 0
+## While non-zero we're mid-reconnect and errors stay quiet until it passes.
+var _rejoin_deadline_ms := 0
+var _rejoin_accum := 0.0
+
+## How long to keep trying before giving up and telling the player. Long enough
+## to cover a glance at a text, short enough that a genuinely dead host doesn't
+## leave someone staring at a banner.
+const REJOIN_WINDOW_MS := 12000
+const REJOIN_INTERVAL := 1.5
+## A drop within this long after coming back is treated as the interruption's
+## fault rather than the host's. Beyond it, the host really did go away.
+const RESUME_GRACE_MS := 8000
+
 
 func _ready() -> void:
 	multiplayer.peer_connected.connect(_on_peer_connected)
@@ -103,6 +137,72 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_pump_beacon(delta)
 	_pump_listener()
+	_pump_rejoin(delta)
+
+
+## iOS suspends the engine outright for a lock or a call, so there is no frame
+## in which to react — all we get is the notification on the way in and the way
+## out. WM_WINDOW_FOCUS_OUT covers the desktop equivalent and makes this
+## testable without a phone.
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_WM_WINDOW_FOCUS_OUT:
+			if _connected and not multiplayer.is_server():
+				_resumed_at_ms = 0
+		NOTIFICATION_APPLICATION_RESUMED, NOTIFICATION_WM_WINDOW_FOCUS_IN:
+			_resumed_at_ms = Time.get_ticks_msec()
+
+
+## True when a disconnect is more likely the phone's fault than the host's.
+func _just_came_back() -> bool:
+	return (_resumed_at_ms > 0
+		and Time.get_ticks_msec() - _resumed_at_ms < RESUME_GRACE_MS)
+
+
+func is_rejoining() -> bool:
+	return _rejoin_deadline_ms > 0
+
+
+func _begin_rejoin() -> void:
+	if _rejoin_ip.is_empty() or is_rejoining():
+		return
+	_rejoin_deadline_ms = Time.get_ticks_msec() + REJOIN_WINDOW_MS
+	_rejoin_accum = REJOIN_INTERVAL   # try immediately rather than after a wait
+	reconnecting.emit(true)
+
+
+func _end_rejoin(success: bool) -> void:
+	if not is_rejoining():
+		return
+	_rejoin_deadline_ms = 0
+	_resumed_at_ms = 0
+	reconnecting.emit(false)
+	if not success:
+		net_error.emit("Lost the game while your phone was away.")
+		lobby_changed.emit()
+
+
+func _pump_rejoin(delta: float) -> void:
+	if not is_rejoining():
+		return
+	if _connected:
+		_end_rejoin(true)
+		feed.emit("Reconnected")
+		return
+	if Time.get_ticks_msec() > _rejoin_deadline_ms:
+		_end_rejoin(false)
+		return
+
+	_rejoin_accum += delta
+	if _rejoin_accum < REJOIN_INTERVAL:
+		return
+	_rejoin_accum = 0.0
+
+	# Straight at the peer rather than through join_game(), which would clear
+	# _rejoin_ip via _teardown() and emit its own error on the way past.
+	var peer := ENetMultiplayerPeer.new()
+	if peer.create_client(_rejoin_ip, PORT) == OK:
+		multiplayer.multiplayer_peer = peer
 
 
 # ---------------------------------------------------------------------------
@@ -155,6 +255,10 @@ func join_game(pname: String, address: String) -> bool:
 		net_error.emit("Couldn't reach %s." % ip)
 		return false
 	multiplayer.multiplayer_peer = peer
+	# Remembered so a phone interruption can put us back without the player
+	# having to find the game again. Cleared by _teardown, so hosting, practice
+	# or a deliberate quit all drop it.
+	_rejoin_ip = ip
 	stop_looking_for_hosts()
 	return true
 
@@ -204,6 +308,14 @@ func reopen_lobby() -> void:
 
 
 func _teardown() -> void:
+	# Anything that tears the connection down on purpose — hosting, practice,
+	# quitting — also abandons any reconnect. Only _on_server_left restores it,
+	# and only when the phone was the reason we dropped.
+	if is_rejoining():
+		reconnecting.emit(false)
+	_rejoin_ip = ""
+	_rejoin_deadline_ms = 0
+	_resumed_at_ms = 0
 	_stop_beacon()
 	if multiplayer.multiplayer_peer != null:
 		multiplayer.multiplayer_peer.close()
@@ -223,13 +335,31 @@ func _on_connected_ok() -> void:
 
 
 func _on_connect_failed() -> void:
+	if is_rejoining():
+		# Expected while reconnecting — the host may still be holding our old
+		# peer slot open until its own timeout expires. Drop the dead peer and
+		# let the pump have another go; don't tear down or the target is lost.
+		multiplayer.multiplayer_peer = null
+		return
 	_teardown()
 	net_error.emit("Couldn't join. Are you both on the same WiFi?")
 	lobby_changed.emit()
 
 
 func _on_server_left() -> void:
+	# Distinguish "the host quit" from "our phone was away and the host gave up
+	# on us". They arrive as the same signal, so the only thing separating them
+	# is whether the OS just handed the app back.
+	var target := _rejoin_ip
+	var interrupted := _just_came_back() or is_rejoining()
 	_teardown()
+
+	if interrupted and not target.is_empty():
+		_rejoin_ip = target
+		_begin_rejoin()
+		lobby_changed.emit()
+		return
+
 	net_error.emit("The host left the game.")
 	lobby_changed.emit()
 

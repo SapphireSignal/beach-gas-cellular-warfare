@@ -19,7 +19,7 @@ config/features=PackedStringArray("4.7", "Mobile")
 run/max_fps=240
 boot_splash/bg_color=Color(0.043, 0.047, 0.066, 1)
 boot_splash/show_image=false
-config/icon="res://icon.svg"
+config/icon="res://icon.png"
 
 [autoload]
 
