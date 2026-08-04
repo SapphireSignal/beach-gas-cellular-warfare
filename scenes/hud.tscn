@@ -214,6 +214,78 @@ script = ExtResource("2_btn")
 label = "JUMP"
 font_size = 14
 
+[node name="SettingsBtn" type="Control" parent="."]
+offset_left = 24.0
+offset_top = 380.0
+offset_right = 88.0
+offset_bottom = 434.0
+mouse_filter = 2
+script = ExtResource("2_btn")
+label = "SETUP"
+font_size = 12
+
+[node name="SettingsPanel" type="Control" parent="."]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Tint" type="ColorRect" parent="SettingsPanel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.04, 0.05, 0.08, 1)
+
+[node name="Title" type="Label" parent="SettingsPanel"]
+offset_left = 440.0
+offset_top = 150.0
+offset_right = 840.0
+offset_bottom = 182.0
+mouse_filter = 2
+text = "SETUP"
+horizontal_alignment = 1
+
+[node name="SensBtn" type="Control" parent="SettingsPanel"]
+offset_left = 470.0
+offset_top = 210.0
+offset_right = 810.0
+offset_bottom = 262.0
+mouse_filter = 2
+script = ExtResource("2_btn")
+font_size = 15
+
+[node name="AssistBtn" type="Control" parent="SettingsPanel"]
+offset_left = 470.0
+offset_top = 274.0
+offset_right = 810.0
+offset_bottom = 326.0
+mouse_filter = 2
+script = ExtResource("2_btn")
+font_size = 15
+
+[node name="FireBtn" type="Control" parent="SettingsPanel"]
+offset_left = 470.0
+offset_top = 338.0
+offset_right = 810.0
+offset_bottom = 390.0
+mouse_filter = 2
+script = ExtResource("2_btn")
+font_size = 15
+
+[node name="CloseBtn" type="Control" parent="SettingsPanel"]
+offset_left = 570.0
+offset_top = 420.0
+offset_right = 710.0
+offset_bottom = 472.0
+mouse_filter = 2
+script = ExtResource("2_btn")
+label = "BACK"
+font_size = 15
+
 [node name="CallOverlay" type="Control" parent="."]
 visible = false
 anchor_right = 1.0

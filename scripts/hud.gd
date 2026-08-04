@@ -48,6 +48,21 @@ const HEAT_LOCKED := Color(1.00, 0.32, 0.22)
 @onready var crouch_btn: ActionButton = $CrouchBtn
 @onready var score_btn: ActionButton = $ScoreBtn
 @onready var quit_btn: ActionButton = $QuitBtn
+@onready var settings_btn: ActionButton = $SettingsBtn
+
+## In-match setup. Only the three settings worth changing without leaving a
+## game: how fast you turn, whether the game helps you aim, and how you fire.
+## Quality and volume stay in the menu — nobody retunes shadows mid-duel, and
+## every row added here is another thing to mis-tap with a thumb.
+@onready var settings_panel: Control = $SettingsPanel
+@onready var sens_btn: ActionButton = $SettingsPanel/SensBtn
+@onready var assist_btn: ActionButton = $SettingsPanel/AssistBtn
+@onready var fire_btn: ActionButton = $SettingsPanel/FireBtn
+@onready var close_btn: ActionButton = $SettingsPanel/CloseBtn
+
+## Sensitivity is a cycle rather than a slider: a slider needs a drag, and every
+## drag in this HUD is already spoken for by looking and moving.
+const SENS_STEPS := [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
 
 var player = null
 var phone = null
@@ -105,6 +120,9 @@ func _ready() -> void:
 	score_btn.color = Color(0.75, 0.78, 0.9)
 	quit_btn.label = "QUIT"
 	quit_btn.color = Color(0.9, 0.5, 0.45)
+	settings_btn.label = "SETUP"
+	settings_btn.color = Color(0.72, 0.76, 0.85)
+	settings_panel.visible = false
 
 	Net.kill_confirmed.connect(_on_kill)
 	Net.feed.connect(_on_feed)
@@ -157,6 +175,11 @@ func _apply_input_mode() -> void:
 	crouch_btn.visible = touch_mode
 	score_btn.visible = touch_mode
 	quit_btn.visible = touch_mode
+	# Touch only. On desktop these three already have keys and a menu, and the
+	# panel's rows are hit-tested by finger position — there's no mouse path.
+	settings_btn.visible = touch_mode
+	if not touch_mode:
+		_close_settings()
 
 	hint_label.visible = not touch_mode
 	hint_label.text = "WASD move  ·  Mouse look  ·  LMB zap  ·  Q track  ·  E call  ·  Ctrl crouch  ·  Tab scores  ·  Alt cursor  ·  Esc leave  ·  F1 touch layout"
@@ -237,7 +260,10 @@ func _drive_player() -> void:
 
 	# Auto-fire: pull the trigger for you, but only when a target is genuinely
 	# under the reticle and with a clear line to them.
+	# Not while the setup panel is up — otherwise the moment you open it to turn
+	# auto-fire off, it keeps shooting at whatever the crosshair was left on.
 	if (Settings.fire_mode == Settings.Fire.AUTO and phone != null
+			and not settings_panel.visible
 			and phone.can_zap() and player.aim_target(AUTO_FIRE_CONE) != null):
 		phone.try_zap()
 
@@ -325,8 +351,27 @@ func _finger_down(index: int, at: Vector2) -> void:
 	if not touch_mode or player == null:
 		return
 
+	# An open panel takes the whole screen. Testing its rows first and returning
+	# unconditionally is what stops a thumb reaching for AIM ASSIST from also
+	# being read as a look-drag or a stick — the fall-through below has no idea
+	# the panel exists.
+	if settings_panel.visible:
+		for entry in [["sens", sens_btn], ["assist", assist_btn],
+				["fire", fire_btn], ["close", close_btn]]:
+			var row: ActionButton = entry[1]
+			if row.contains_point(at):
+				_roles[index] = entry[0]
+				row.held = true
+				_press_setting(entry[0])
+				return
+		# Anywhere else closes it, which is what a tap outside a sheet should do
+		# and saves aiming at BACK with a thumb.
+		_close_settings()
+		return
+
 	for entry in [["zap", zap_btn], ["track", track_btn], ["call", call_btn],
-			["jump", jump_btn], ["crouch", crouch_btn], ["score", score_btn], ["quit", quit_btn]]:
+			["jump", jump_btn], ["crouch", crouch_btn], ["score", score_btn],
+			["quit", quit_btn], ["settings", settings_btn]]:
 		var btn: ActionButton = entry[1]
 		if btn.visible and btn.contains_point(at):
 			_roles[index] = entry[0]
@@ -381,6 +426,16 @@ func _finger_up(index: int) -> void:
 			score_btn.held = false
 		"quit":
 			quit_btn.held = false
+		"settings":
+			settings_btn.held = false
+		"sens":
+			sens_btn.held = false
+		"assist":
+			assist_btn.held = false
+		"fire":
+			fire_btn.held = false
+		"close":
+			close_btn.held = false
 	_roles.erase(index)
 
 
@@ -421,6 +476,60 @@ func _press(what: String) -> void:
 			_scoreboard_pinned = not _scoreboard_pinned
 		"quit":
 			Net.leave()
+		"settings":
+			_open_settings()
+
+
+# ---------------------------------------------------------------------------
+# In-match setup
+# ---------------------------------------------------------------------------
+
+func _open_settings() -> void:
+	# Drop the stick before the panel covers it, or the thumb that opened this
+	# leaves the player walking into a wall behind the tint.
+	_stick_active = false
+	if player != null:
+		player.input_move = Vector2.ZERO
+	_refresh_settings()
+	settings_panel.visible = true
+
+
+func _close_settings() -> void:
+	if not settings_panel.visible:
+		return
+	settings_panel.visible = false
+	Settings.save()
+
+
+## Each row shows its own current value, so the panel needs no separate labels
+## and stays readable at a glance with a thumb over half of it.
+func _refresh_settings() -> void:
+	sens_btn.label = "LOOK SPEED   %.2fx" % Settings.look_sensitivity
+	assist_btn.label = "AIM ASSIST   %s" % ("ON" if Settings.aim_assist else "OFF")
+	fire_btn.label = "FIRE   %s" % Settings.FIRE_NAMES[Settings.fire_mode].to_upper()
+
+	sens_btn.color = Palette.SIGN_WHITE
+	assist_btn.color = Palette.TRACK if Settings.aim_assist else Color(0.55, 0.57, 0.62)
+	fire_btn.color = Palette.CALL
+	close_btn.color = Palette.SIGN_WHITE
+
+
+func _press_setting(what: String) -> void:
+	match what:
+		"sens":
+			# Cycle rather than clamp, so there's always a next tap — running
+			# into a silent end-stop reads as the button being broken.
+			var i := SENS_STEPS.find(snappedf(Settings.look_sensitivity, 0.01))
+			Settings.look_sensitivity = SENS_STEPS[(i + 1) % SENS_STEPS.size()]
+		"assist":
+			Settings.aim_assist = not Settings.aim_assist
+		"fire":
+			Settings.fire_mode = (Settings.fire_mode + 1) % Settings.FIRE_NAMES.size()
+		"close":
+			_close_settings()
+			return
+	Settings.changed.emit()
+	_refresh_settings()
 
 
 func _key(code: int) -> void:
