@@ -332,9 +332,11 @@ func _drive_player() -> void:
 		zap_btn.dim = verb == ""
 		if _interact_held:
 			shift.interact(true, get_process_delta_time())
-		return
-
-	if (Settings.fire_mode == Settings.Fire.AUTO and phone != null
+		# Deliberately NOT returning. This used to `return` here, which skipped
+		# the stick handling below and left the player rooted to the spot for
+		# the entire shift. Only the auto-fire branch should be skipped — a
+		# shift has no weapon, but it very much has legs.
+	elif (Settings.fire_mode == Settings.Fire.AUTO and phone != null
 			and not settings_panel.visible
 			and phone.can_zap() and player.aim_target(AUTO_FIRE_CONE) != null):
 		phone.try_zap()
