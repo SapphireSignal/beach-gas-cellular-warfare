@@ -164,6 +164,22 @@ func _apply_safe_area() -> void:
 	offset_right = -float(window.x - safe.end.x) * scale_x
 	offset_bottom = -float(window.y - safe.end.y) * scale_y
 
+	# The safe area exists to keep *controls* out from under the notch. Two
+	# things must ignore it: the damage flash and the call tint are meant to
+	# cover the entire screen, and as children of this inset Control they were
+	# stopping short of the edges — the exact "doesn't cover the whole screen"
+	# Jay reported for both the blue call flash and the red damage one.
+	#
+	# Cancelling the parent's inset on just those two puts them back to the
+	# physical screen edge without moving anything a thumb has to hit.
+	for full: Control in [damage_flash, call_tint]:
+		if full == null:
+			continue
+		full.offset_left = -offset_left
+		full.offset_top = -offset_top
+		full.offset_right = -offset_right
+		full.offset_bottom = -offset_bottom
+
 
 func _apply_input_mode() -> void:
 	# The buttons stay on screen in desktop mode as pure readouts — they're the
@@ -635,6 +651,47 @@ func _on_match_over(winner_id: int) -> void:
 		result_label.text = "%s WINS" % Net.display_name(winner_id).to_upper()
 		Sfx.play("lose", -3.0)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+## Draw everything once, invisibly, before the player can see it.
+##
+## Jay reported an fps drop "when you first get called" and for the first couple
+## of seconds of a match. Both are the same thing: Godot rasterises font glyphs
+## into an atlas the first time a string is drawn at a given size, and compiles
+## material variants the first time something renders. The call overlay is a
+## full-screen tint plus two labels nobody has drawn yet, so the first call pays
+## for all of it in one frame — mid-fight.
+##
+## So we pay it during the loading screen instead. Everything is forced visible
+## at zero alpha for a frame: the GPU and the font atlas do their work, nothing
+## reaches the player's eye, and the first real call is free.
+##
+## Called by main.gd while the loading screen still covers the screen.
+func warm_up() -> void:
+	var was_visible := call_overlay.visible
+	var was_alpha := call_overlay.modulate.a
+
+	caller_label.text = "WARMING"
+	call_hint.text = "WARMING"
+	call_overlay.modulate.a = 0.0
+	call_overlay.visible = true
+
+	# The status and result labels are the other two that only ever appear
+	# mid-match, so they get the same treatment.
+	var status_was := status_label.text
+	var result_was := result_label.text
+	status_label.text = "WARMING"
+	result_label.text = "WARMING"
+
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	call_overlay.visible = was_visible
+	call_overlay.modulate.a = was_alpha
+	caller_label.text = ""
+	call_hint.text = ""
+	status_label.text = status_was
+	result_label.text = result_was
 
 
 func _say(text: String, seconds: float) -> void:

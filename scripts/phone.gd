@@ -42,12 +42,12 @@ const OVERHEAT_LOCKOUT := 5.0
 const BEAM_FADE := 0.11
 
 # --- track ---
-const TRACK_COOLDOWN := 8.0
+const TRACK_COOLDOWN := 5.0
 const TRACK_REVEAL := 3.0
 const TRACK_PULSE := 0.6
 
 # --- call ---
-const CALL_COOLDOWN := 20.0
+const CALL_COOLDOWN := 10.0
 
 var player = null
 
@@ -70,7 +70,17 @@ var _screen_mat: StandardMaterial3D
 var _bob := 0.0
 var _kick := 0.0
 var _sway := Vector2.ZERO
-var _rest_position := Vector3(0.235, -0.205, -0.42)
+## Kept inside the player's 0.36m collision radius on purpose. At the old
+## -0.42 the phone sat *further* from the camera than a wall can get, so
+## world geometry cut straight through it whenever you stood near one -
+## the glitching Jay reported. Nothing can intrude inside 0.36, so this is
+## clipping-proof rather than clipping-unlikely.
+##
+## Pulled in to 60% of the old distance, which also makes it read ~1.7x
+## larger on screen; the scale below adds the rest of the size Jay asked
+## for. Position is scaled by the same factor so it stays framed where it
+## was, just nearer and bigger.
+var _rest_position := Vector3(0.141, -0.123, -0.252)
 var _rest_rotation := Vector3(-9.0, 14.0, 4.0)
 
 var _last_shot := -99.0
@@ -548,6 +558,10 @@ func _notify(target, method: StringName, arg) -> void:
 func _build_viewmodel() -> void:
 	position = _rest_position
 	rotation_degrees = _rest_rotation
+	# On top of being pulled nearer, the whole viewmodel - phone and the hand
+	# holding it - is scaled up. Jay wanted it bigger on screen; combined with
+	# the closer rest position it now reads a bit over twice its old size.
+	scale = Vector3.ONE * 1.25
 
 	var entry := Characters.get_entry(int(player.character_index))
 	var case := player.case_color as Color

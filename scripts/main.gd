@@ -59,27 +59,57 @@ func _ready() -> void:
 	if "--audit" in OS.get_cmdline_user_args():
 		print("AUDIT Boot | engine+autoloads %dms" % Time.get_ticks_msec())
 
-	_start_backdrop_when_menu_is_up()
+	_boot_sequence()
 	_handle_command_line()
 
 
-## The menu backdrop is a live 3D scene, and building it costs ~390ms on the dev
-## Mac — more on a phone. Doing that inside _ready spends it before the first
-## frame is ever drawn, so it lands as grey screen on top of the ~1.4s the
-## engine and autoloads already take.
+## The launch screen, and the warm-up that hides behind it.
 ##
-## Waiting a frame turns it into 390ms of *visible menu* instead. The backdrop
-## fades in behind a menu that's already on screen, which is what it does when
-## you come back from a match anyway.
+## Jay's report: the first couple of seconds of a match drop frames, and so does
+## the first incoming call. Both are first-use costs — Godot compiles material
+## variants and rasterises font glyphs the first time something is drawn, and
+## the game was paying for all of it the moment a player could see.
 ##
-## The guard matters: a --practice or --autohost run starts a match immediately,
-## and without it this would build a backdrop into a live match a frame later —
-## two WorldEnvironments fighting over the sky, which is exactly what
-## _on_match_started tears the backdrop down to avoid.
-func _start_backdrop_when_menu_is_up() -> void:
+## The menu backdrop is the lever here, and it's an accident of how it was
+## built: it loads the *real Beach Gas level*, so simply letting it render for a
+## few frames pushes every one of the game's materials through the pipeline. By
+## the time anyone taps Play, that work is done.
+##
+## So: cover the screen, build the backdrop, hold for a handful of frames while
+## it renders, then reveal the menu. The cost was always there — this just moves
+## it somewhere it reads as loading rather than as the game stuttering.
+func _boot_sequence() -> void:
+	# Headless and scripted runs have nothing to show and nobody to show it to,
+	# and the extra frames would only slow the checks down.
+	#
+	# Read the flags directly rather than trusting _driven_from_cli: this is
+	# called before _handle_command_line() sets it, and getting that wrong meant
+	# a windowed --practice run tore down the *match's* loading screen mid-build.
+	var args := OS.get_cmdline_user_args()
+	var scripted: bool = "--practice" in args or "--autohost" in args
+	for a in args:
+		if a.begins_with("--autojoin="):
+			scripted = true
+	if scripted or DisplayServer.get_name() == "headless":
+		await get_tree().process_frame
+		if _want_backdrop:
+			_start_backdrop()
+		return
+
+	_show_loading("BEACH GAS", "warming up")
 	await get_tree().process_frame
+	await get_tree().process_frame
+
 	if _want_backdrop:
 		_start_backdrop()
+
+	# Let the level actually render behind the loading screen. Each frame here
+	# is one the player doesn't pay for later.
+	for i in 8:
+		_set_loading(0.15 + 0.85 * (float(i) / 8.0), "warming up")
+		await get_tree().process_frame
+
+	_hide_loading()
 
 
 func _process(_delta: float) -> void:
@@ -212,6 +242,29 @@ func _on_match_started() -> void:
 
 	hud = HUD_SCENE.instantiate()
 	hud_layer.add_child(hud)
+
+	# Draw the HUD's mid-match pieces once while they're still hidden behind the
+	# loading screen. The call overlay in particular is a full-screen tint and
+	# two labels nobody has drawn yet, and paying for that during an incoming
+	# call is exactly when you can least afford a dropped frame.
+	_set_loading(0.88, "warming up")
+
+	# Every player builds their whole body at spawn - each box, sphere and
+	# material created from scratch in player.gd - and they all spawn at once,
+	# which is the drop Jay reported in the first seconds of a match.
+	#
+	# Building one here pays the first-time costs behind the loading screen:
+	# shader variants for skin, hair and clothing, and the mesh primitives
+	# themselves. The per-player work still happens at spawn, but the expensive
+	# first-of-each-kind part is already done.
+	var warm := CharacterBuilder.build(Characters.get_entry(Loadout.character_index), true)
+	game_root.add_child(warm)
+	await get_tree().process_frame
+	warm.queue_free()
+
+	_set_loading(0.92, "warming up the HUD")
+	if hud.has_method("warm_up"):
+		await hud.warm_up()
 
 	_set_loading(1.0, "waiting for everyone")
 	await get_tree().process_frame
