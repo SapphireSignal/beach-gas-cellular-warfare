@@ -159,3 +159,47 @@ const LAMP_LIGHT := Color(0.86, 0.92, 1.0)
 const LIGHT_SHAFT := Color(1.0, 0.94, 0.78, 0.05)
 
 const SIGN_TEXT_BLUE := Color(0.07, 0.24, 0.50)
+
+# ---------------------------------------------------------------------------
+# The real Beach Gas
+#
+# Taken from photographs of the actual station rather than invented. The
+# fictional map is a night forecourt; the real one is a pale gravel clearing in
+# the forest, and almost none of the colours above fit it.
+# ---------------------------------------------------------------------------
+
+## Crushed limestone, not asphalt. The whole site is this, and it is bright —
+## which is why the real map needs its own ambient rather than the night one.
+const GRAVEL := Color(0.72, 0.70, 0.66)
+
+## The store: white board-and-batten under a black standing-seam roof.
+const STORE_WHITE := Color(0.88, 0.88, 0.86)
+const ROOF_BLACK := Color(0.11, 0.11, 0.12)
+
+## The sign. Teal disc, orange-red ring, cream lettering — this is the brand and
+## the one thing that must not drift.
+const BEACH_TEAL := Color(0.42, 0.72, 0.75)
+const BEACH_ORANGE := Color(0.85, 0.34, 0.18)
+const BEACH_CREAM := Color(0.96, 0.95, 0.90)
+
+## Summerleaf next door: weathered board, much darker and greyer than the store.
+const BARN_WOOD := Color(0.38, 0.34, 0.30)
+const CEDAR_FENCE := Color(0.60, 0.48, 0.34)
+
+## The two horizontal fuel tanks, and the tall lot poles.
+const TANK_WHITE := Color(0.86, 0.87, 0.86)
+
+## Adirondack chairs — some white, some a strong blue.
+const CHAIR_BLUE := Color(0.15, 0.42, 0.82)
+
+## The pylon's LED price digits. Deliberately the same red family as ZAP but not
+## the same colour, so nobody reads a price board as a player.
+const PRICE_RED := Color(1.0, 0.22, 0.10)
+
+## Daylight, not dusk. The real place is photographed under a hard blue sky.
+const DAY_SKY_TOP := Color(0.25, 0.52, 0.86)
+const DAY_SKY_HORIZON := Color(0.74, 0.85, 0.93)
+const DAY_SUN := Color(1.0, 0.96, 0.88)
+const FOREST_DARK := Color(0.13, 0.24, 0.14)
+const FOREST_LIGHT := Color(0.22, 0.40, 0.20)
+const TRUNK := Color(0.30, 0.26, 0.22)

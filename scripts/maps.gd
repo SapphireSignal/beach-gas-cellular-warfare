@@ -23,6 +23,13 @@ const LIST: Array[Dictionary] = [
 		"available": true,
 	},
 	{
+		"id": "beach_gas_real",
+		"name": "Beach Gas (Real)",
+		"blurb": "The actual station. Gravel, forest, four pumps and nowhere to hide.",
+		"scene": "res://scenes/beach_gas_real.tscn",
+		"available": true,
+	},
+	{
 		"id": "sudz",
 		"name": "Sudz Car Wash",
 		"blurb": "Coming soon.",

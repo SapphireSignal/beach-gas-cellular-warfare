@@ -415,8 +415,49 @@ def build_hedge(pal, rng):
     return emit("hedge", albedo, height, rough, 2.6)
 
 
+def build_gravel(pal, rng):
+    """Crushed limestone. The real station is this everywhere, and it is the
+    single biggest surface in that map — so it carries more visible stone than
+    the asphalt does, and lighter."""
+    bed = fbm(SIZE, 10, 5, rng)
+    stones = speckle(SIZE, 72, rng, 0.55)      # far denser than asphalt aggregate
+    chips = speckle(SIZE, 128, rng, 0.72)
+
+    variation = normalise(bed)
+    albedo = tint(pal["GRAVEL"], variation, 0.30)
+    albedo = np.clip(albedo + stones[..., None] * 0.09 + chips[..., None] * 0.05,
+                     0.0, 1.0)
+
+    height = normalise(bed * 0.4 + stones * 0.4 + chips * 0.2)
+    rough = np.clip(0.96 - stones * 0.05, 0.0, 1.0)
+
+    return emit("gravel", albedo, height, rough, 2.8)
+
+
+def build_wood(pal, rng):
+    """Weathered vertical board. Used for Summerleaf and the fences — grain runs
+    one way, so like the metal this samples a stretched lattice, and the plank
+    seams are drawn as hard dark lines rather than left to noise."""
+    grain = _lattice(SIZE, 200, rng)
+    knots = fbm(SIZE, 5, 4, rng)
+
+    variation = normalise(grain * 0.55 + knots * 0.45)
+    albedo = tint(pal["BARN_WOOD"], variation, 0.30)
+
+    # Plank seams every 64px. Drawn rather than noised, because a board edge is
+    # a straight line and noise never reads as joinery.
+    x = np.arange(SIZE)
+    seam = ((x % 64) < 2).astype(np.float32)[None, :]
+    albedo = np.clip(albedo - seam[..., None] * 0.18, 0.0, 1.0)
+
+    height = normalise(grain) - seam * 0.6
+    rough = np.clip(0.90 + knots * 0.08, 0.0, 1.0)
+
+    return emit("wood", albedo, height, rough, 1.4)
+
+
 SURFACES = [build_asphalt, build_concrete, build_wall, build_curb,
-            build_metal, build_rubber, build_hedge]
+            build_metal, build_rubber, build_hedge, build_gravel, build_wood]
 
 
 # ---------------------------------------------------------------------------

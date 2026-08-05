@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://bbeachgasreal01"]
+
+[ext_resource type="Script" path="res://scripts/map_beach_gas_real.gd" id="1_bgreal"]
+
+[node name="World" type="Node3D"]
+script = ExtResource("1_bgreal")
+
+[node name="Players" type="Node3D" parent="."]

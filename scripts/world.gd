@@ -291,6 +291,29 @@ func _build_materials() -> void:
 	_mats["taillight"] = _glow(Palette.TAILLIGHT, Palette.TAILLIGHT_EMIT,
 		Palette.TAILLIGHT_ENERGY)
 
+	# --- the real Beach Gas -------------------------------------------------
+	#
+	# Built here rather than in the map so both levels share one material table
+	# and mesh_merge still collapses to one draw per material. The real station
+	# is a daylight gravel clearing, so almost none of the night forecourt's
+	# surfaces suit it.
+	_mats["gravel"] = _textured(_mat(Palette.GRAVEL, 0.96), "gravel", 0.5)
+	_mats["wood"] = _textured(_mat(Palette.BARN_WOOD, 0.92), "wood", 0.9)
+	_mats["store_white"] = _textured(_mat(Palette.STORE_WHITE, 0.88), "wall", 0.7)
+	_mats["roof_black"] = _mat(Palette.ROOF_BLACK, 0.45, 0.35)
+	_mats["teal"] = _mat(Palette.BEACH_TEAL, 0.7)
+	_mats["orange"] = _mat(Palette.BEACH_ORANGE, 0.7)
+	_mats["cream"] = _mat(Palette.BEACH_CREAM, 0.75)
+	_mats["tank_white"] = _mat(Palette.TANK_WHITE, 0.55, 0.25)
+	_mats["chair_blue"] = _mat(Palette.CHAIR_BLUE, 0.75)
+	_mats["cedar"] = _textured(_mat(Palette.CEDAR_FENCE, 0.9), "wood", 1.1)
+	_mats["forest_dark"] = _textured(_mat(Palette.FOREST_DARK, 1.0), "hedge", 1.4)
+	_mats["forest_light"] = _textured(_mat(Palette.FOREST_LIGHT, 1.0), "hedge", 1.6)
+	_mats["trunk"] = _textured(_mat(Palette.TRUNK, 0.95), "wood", 2.4)
+	# The pylon's price digits. Emissive so they read at distance without
+	# spending one of the eight omni slots.
+	_mats["price"] = _glow(Palette.PRICE_RED, Palette.PRICE_RED, 3.0)
+
 	# Unlit additive haze for the fake light shafts. No depth write, no shadow,
 	# no lighting — about as cheap as geometry gets, and the mobile renderer
 	# can't do real volumetrics anyway.
