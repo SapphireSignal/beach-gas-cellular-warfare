@@ -9,7 +9,7 @@
       "developerName": "Sapphire Signal",
       "subtitle": "Zap them, track them, call them.",
       "localizedDescription": "A first-person duel where your phone is the weapon. Up to 8 players over local WiFi, no internet required.",
-      "iconURL": "https://github.com/SapphireSignal/beach-gas-cellular-warfare/releases/download/v1.2.0.26/beachgas-icon.png",
+      "iconURL": "https://github.com/SapphireSignal/beach-gas-cellular-warfare/releases/download/v1.2.0.27/beachgas-icon.png",
       "tintColor": "E84A55",
       "category": "games",
       "appPermissions": {
@@ -19,6 +19,14 @@
         }
       },
       "versions": [
+        {
+          "version": "1.2.0.27",
+          "date": "2026-08-05T23:36:15+00:00",
+          "size": 33895055,
+          "downloadURL": "https://github.com/SapphireSignal/beach-gas-cellular-warfare/releases/download/v1.2.0.27/beachgas.ipa",
+          "minOSVersion": "14.0",
+          "localizedDescription": "- Fix the lobby cropping, the shift's frame drops, and make cars drive off\n- Narrow the menu panels\n- Bring the in-match buttons back down\n- Let the player move on shift, and lift the HUD clear of the bottom edge"
+        },
         {
           "version": "1.2.0.26",
           "date": "2026-08-05T23:11:24+00:00",
