@@ -360,7 +360,63 @@ def build_curb(pal, rng):
     return emit("curb", albedo, height, rough, 1.3)
 
 
-SURFACES = [build_asphalt, build_concrete, build_wall, build_curb]
+def build_metal(pal, rng):
+    """Pump housings, poles, shutters. Brushed rather than polished — a mirror
+    finish on a phone reads as plastic, because there's no reflection probe for
+    it to mirror."""
+    # Anisotropic on purpose: brushing runs one way, so the noise is stretched
+    # along x by sampling a tall, narrow lattice.
+    fine = fbm(SIZE, 4, 5, rng)
+    brush = _lattice(SIZE, 256, rng)
+    grime = fbm(SIZE, 3, 3, rng)
+
+    variation = normalise(brush * 0.6 + fine * 0.25 + grime * 0.15)
+    albedo = tint(pal["METAL"], variation, 0.14)
+
+    height = normalise(brush * 0.8 + fine * 0.2)
+    # Grimy patches are duller. That contrast is most of what sells metal —
+    # uniform roughness reads as painted plastic at any resolution.
+    rough = np.clip(0.32 + grime * 0.34 + brush * 0.06, 0.0, 1.0)
+
+    return emit("metal", albedo, height, rough, 0.7)
+
+
+def build_rubber(pal, rng):
+    """Tyres and mats. Almost black, so the relief is doing all the work — with
+    no texture at all these read as holes cut in the world."""
+    tread = fbm(SIZE, 6, 3, rng)
+    pores = speckle(SIZE, 160, rng, 0.78)
+
+    variation = normalise(tread)
+    albedo = tint(pal["RUBBER"], variation, 0.55)   # large, since the base is dark
+
+    height = normalise(tread) - pores * 0.5
+    rough = np.clip(0.93 + tread * 0.06, 0.0, 1.0)
+
+    return emit("rubber", albedo, height, rough, 1.8)
+
+
+def build_hedge(pal, rng):
+    """Planting. Dense small-scale clumping rather than leaf shapes — at the
+    distance these are ever seen, clumping is what reads as foliage and actual
+    leaves would just alias into noise."""
+    clump = fbm(SIZE, 14, 5, rng, gain=0.62)
+    coarse = fbm(SIZE, 4, 3, rng)
+
+    variation = normalise(clump * 0.7 + coarse * 0.3)
+    albedo = tint(pal["HEDGE"], variation, 0.45)
+    # A few lighter tips catching the lamps, or it reads as a green block.
+    tips = speckle(SIZE, 96, rng, 0.76)
+    albedo = np.clip(albedo + tips[..., None] * 0.10, 0.0, 1.0)
+
+    height = normalise(clump)
+    rough = np.clip(0.95 + clump * 0.04, 0.0, 1.0)
+
+    return emit("hedge", albedo, height, rough, 2.6)
+
+
+SURFACES = [build_asphalt, build_concrete, build_wall, build_curb,
+            build_metal, build_rubber, build_hedge]
 
 
 # ---------------------------------------------------------------------------
