@@ -307,67 +307,88 @@ Three things that make the workflow work, and will silently break it if changed:
 
 ## What's next
 
-Beach Gas has now been played on a real iPhone (2026-08-04). Everything below
-comes from that session.
+Beach Gas has been played on a real iPhone. Everything here comes from those
+sessions. Items struck through were done on 2026-08-04/05.
 
-1. ~~**Phone interruptions.**~~ **Done 2026-08-04.** A lock or a call suspends
-   the engine, the host times the client out, and the client used to land on
-   "The host left the game." `net.gd` now remembers what it joined, notices the
-   OS handing the app back, and retries for 12s behind a `RECONNECTING` banner
-   before saying anything. Both cases arrive as the same `server_disconnected`
-   signal — the resume grace window is the only thing separating them, so don't
-   remove it. **Not yet confirmed on a real phone**; it needs a lock mid-match.
-2. **Everything is generated at runtime, and generation blocks the main
-   thread.** Cause of all three freezes Jay reported. The launch one is now
-   measured rather than guessed — `--audit` prints it:
+1. ~~**Phone interruptions.**~~ **Done.** A lock or a call suspends the engine,
+   the host times the client out, and the client used to land on "The host left
+   the game." `net.gd` now remembers what it joined, notices the OS handing the
+   app back, and retries for 12s behind a `RECONNECTING` banner. Both cases
+   arrive as the same `server_disconnected` signal — the resume grace window is
+   the only thing separating them, so don't remove it. **Not yet confirmed on a
+   real phone**; it needs a lock mid-match.
 
-   | | Mac, 2026-08-04 |
-   |---|---|
-   | Engine boot + autoloads | 1265ms |
-   | — of which `Sfx` synthesis | ~135ms (11%) |
-   | Menu backdrop (was in `_ready`) | 388ms, **now deferred a frame** |
+2. **Generation still blocks the main thread.** Loading screens now *cover*
+   launch, Play and Quit, and warm-ups run behind them (a character is built,
+   and the HUD's call overlay is drawn once, so neither costs a frame later).
+   **None of that made generation faster** — that is still the real fix, and it
+   is spreading `_build_level()` across frames.
 
-   **`Sfx` was never the problem** — this file used to imply it was, and
-   optimising it would have been mostly wasted work. Measure before picking a
-   target here. Remaining: a couple of seconds on Play/Quit (level generation)
-   and an fps drop when picking a character (built on tap). Fix shape for both
-   is the same: spread across frames and draw a progress screen.
-3. ~~**No colour palette.**~~ **Done 2026-08-04** — `scripts/palette.gd`. It was
-   446 literals across 17 files, not the 5 this file used to claim. `world.gd`,
+   Measured, so don't re-guess: engine + autoloads ~1.3s headless but **~13s
+   windowed on the dev Mac**; `Sfx` is only ~11% of it, and this file used to
+   imply it was the problem. The menu backdrop was 388ms inside `_ready` and is
+   now deferred.
+
+3. ~~**No colour palette.**~~ **Done** — `scripts/palette.gd`. It was 446
+   literals across 17 files, not the 5 this file used to claim. `world.gd`,
    `map_level_three.gd` and `phone.gd` are migrated; `character_props.gd` (92),
    `menu.gd` (61), `hud.gd` (56) and `characters.gd` (37) still hold their own.
    **Constraint, still binding:** the red/green/blue of ZAP/TRACK/CALL are
    load-bearing information players read off each other across the lot —
    refine, never re-assign.
-4. **Joining a match already in progress is broken.** A guest who arrives after
+
+4. **Joining a match already in progress is broken.** A guest arriving after
    `begin_match()` gets RPC failures against player nodes that don't exist on
    their end — `Node not found: Main/GameRoot/World/Players/<id>`, then
-   `Invalid packet received`. Found 2026-08-04 with the new `--min-players`
-   flag. **Four players who are all in the lobby before the start work
-   perfectly** — 4/4 in a built world, zero errors — so this is specifically
-   late-join, not player count.
-5. **Art and textures — started 2026-08-04.** `tools/gen_art.py` generates
-   asphalt, concrete, wall and curb (albedo/normal/roughness, 512px) plus the
-   app icon, all from `palette.gd`. Deterministic; **never hand-edit the
-   outputs, fix the script and rerun.**
+   `Invalid packet received`. **Four players all in the lobby before the start
+   work perfectly** — 4/4 in a built world, zero errors — so this is
+   specifically late-join, not player count. Needs the host to hand a late
+   joiner the match state and spawn everyone once their world reports ready.
+   **Highest-value bug left.**
 
-   - **Zero binary assets is over**, deliberately. `art/gen` is ~1.7 MB of PNG,
-     2.7 MB once Godot compresses it. That was the right trade, but the claim
-     appears elsewhere in this file and in the repo description.
+5. **Art and textures — well started.** `tools/gen_art.py` generates asphalt,
+   concrete, wall, curb, metal, rubber and hedge (albedo/normal/roughness,
+   512px) plus the app icon, all from `palette.gd`. Deterministic; **never
+   hand-edit the outputs, fix the script and rerun.**
+
+   - **Zero binary assets is over**, deliberately. ~9.5 MB imported.
    - Applied with **world-space triplanar**, forced by the merge: after
      `mesh_merge` one material is shared by a 40m forecourt and a 1m crate, so
      no per-object UV scale survives. Costs 3 texture samples per pixel.
    - **The generator writes its own `.import` files.** Godot's defaults are
-     wrong here twice over — no VRAM compression (12 MB of VRAM vs 2.7) and no
-     mipmaps, without which the forecourt shimmers on every step. Don't let
-     those get regenerated with defaults.
-   - **The triplanar GPU cost has never been measured.** It needs a *windowed*
-     `--audit`; headless reports `draw_calls=0`. Still outstanding.
+     wrong twice over — no VRAM compression and no mipmaps, without which the
+     forecourt shimmers on every step. Don't let those regenerate as defaults.
+   - Still flat: glass, plants, pot, shelf, stock, chrome, signs.
 
-   Still not started: a title font, and real sound to replace the synthesised
-   bank.
-6. **In-match settings button**, left side. Requested; settings currently only
-   exist in the menu.
+   Still not started: **a title font**, and **real sound** to replace the
+   synthesised bank. Sound is the biggest remaining "unfinished" item.
+
+6. ~~**In-match settings button.**~~ **Done** — SETUP in the left column opens
+   look speed, aim assist and fire mode. It swallows touches while open, or a
+   thumb reaching for a row also reads as a look-drag.
+
+7. ~~**The mobile 8-light cap.**~~ **Done.** Beach Gas placed 12 omni lights
+   where the Mobile renderer only lets 8 affect one object — and after
+   `mesh_merge` the ground *is* one object, so four were discarded every frame
+   and Godot chose which. Now exactly 8. **Emission is free against this cap**,
+   so anything that only needs to *look* lit should not be an `OmniLight3D` —
+   that is how the Summerleaf purple was kept without a light.
+
+   **Re-judge the ambient level on a phone.** It was lifted from 0.75 to
+   compensate for lights that were being thrown away; that reason is gone.
+
+8. **Unconfirmed on a real phone**, all reported by Jay and fixed blind:
+   the match-start fps drop, the menu character-pick stutter (not addressed —
+   only match spawning was warmed), and a **blue graphical glitch inside the
+   gas station** that was never diagnosed. The store has both a transparent
+   `glass` material with `CULL_DISABLED` and an emissive `cooler`; bad alpha
+   sorting and z-fighting look different and have different fixes, so get a
+   description before changing anything.
+
+9. **Phone performance has never actually been measured.** The dev Mac is an
+   Intel Iris Plus 640 — every iOS 26 device is far faster, so its frame
+   numbers say nothing useful. The game has a **Show FPS** setting; that
+   reading is the only real number.
 
 ## The human context
 
