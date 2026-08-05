@@ -3,6 +3,7 @@ extends Node
 
 const HUD_SCENE := preload("res://scenes/hud.tscn")
 const BACKDROP_SCRIPT := preload("res://scripts/menu_backdrop.gd")
+const LOADING_SCRIPT := preload("res://scripts/loading.gd")
 const POST_MATCH_SECONDS := 6.0
 
 @onready var menu_layer: CanvasLayer = $MenuLayer
@@ -13,6 +14,10 @@ const POST_MATCH_SECONDS := 6.0
 var world: Node3D = null
 var hud: Control = null
 var backdrop: Node3D = null
+## Its own layer, above the HUD, so it covers the match being torn down as well
+## as the menu being rebuilt.
+var loading_layer: CanvasLayer = null
+var loading: Control = null
 
 
 var _autostart := false
@@ -41,6 +46,12 @@ func _ready() -> void:
 	Net.net_error.connect(_on_net_error)
 	Net.left_match.connect(_on_left_match)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+	# Its own layer above the HUD, because it has to cover a match being torn
+	# down as well as the menu being rebuilt.
+	loading_layer = CanvasLayer.new()
+	loading_layer.layer = 100
+	add_child(loading_layer)
 
 	# Where the grey screen at launch actually goes. Everything before this point
 	# is engine boot plus the autoloads (Sfx synthesises the whole sound bank in
@@ -168,10 +179,26 @@ func _maybe_autostart() -> void:
 		Net.begin_match()
 
 
+## Building a level takes seconds on a phone and blocks the main thread the
+## whole time. Before this there was nothing on screen while it happened — the
+## menu just sat there, unresponsive, which reads as a crash.
+##
+## The `await` calls are the entire trick and they are not decorative: showing
+## the loading screen and building in the same frame paints nothing, because
+## the frame never finishes. Each await lets one frame actually reach the glass
+## before the next blocking chunk starts. Remove them and this silently goes
+## back to a frozen menu.
 func _on_match_started() -> void:
+	_show_loading("ENTERING", Maps.display_name(Net.selected_map))
+	await get_tree().process_frame
+	await get_tree().process_frame
+
 	_teardown_match()
 	_stop_backdrop()   # two WorldEnvironments would fight over the sky
 	menu_layer.hide()
+
+	_set_loading(0.25, "building the level")
+	await get_tree().process_frame
 
 	# Whichever map the host picked. Net.selected_map is already synced to
 	# everyone by the time the match starts.
@@ -180,8 +207,16 @@ func _on_match_started() -> void:
 	game_root.add_child(world)
 	Net.world = world
 
+	_set_loading(0.80, "laying out the controls")
+	await get_tree().process_frame
+
 	hud = HUD_SCENE.instantiate()
 	hud_layer.add_child(hud)
+
+	_set_loading(1.0, "waiting for everyone")
+	await get_tree().process_frame
+
+	_hide_loading()
 
 	# Tell the host this device is ready. Players spawn once everyone reports in,
 	# so nobody drops into a level that hasn't finished building.
@@ -207,16 +242,58 @@ func _on_left_match() -> void:
 		_back_to_menu()
 
 
+## Quitting is the other freeze Jay reported. Tearing down a merged level and
+## rebuilding the menu backdrop both cost real time, and it happened with the
+## dead match still on screen.
 func _back_to_menu() -> void:
+	_show_loading("LEAVING", "")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
 	# Snapshot the standings before the lobby is torn down, so there's always a
 	# "last game" to look at.
 	if Net.players.size() > 1:
 		Stats.record_match_end()
+
+	_set_loading(0.4, "packing up")
+	await get_tree().process_frame
 	_teardown_match()
+
+	_set_loading(0.85, "back to the forecourt")
+	await get_tree().process_frame
 	_start_backdrop()
+
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	menu_layer.show()
 	menu.refresh_after_match()
+
+	_set_loading(1.0, "")
+	await get_tree().process_frame
+	_hide_loading()
+
+
+# ---------------------------------------------------------------------------
+# Loading screen
+# ---------------------------------------------------------------------------
+
+func _show_loading(title: String, detail: String) -> void:
+	if loading == null:
+		loading = LOADING_SCRIPT.new()
+		loading_layer.add_child(loading)
+	loading.set_title(title)
+	loading.set_progress(0.05, detail)
+	loading.show()
+
+
+func _set_loading(amount: float, detail: String) -> void:
+	if loading != null:
+		loading.set_progress(amount, detail)
+
+
+func _hide_loading() -> void:
+	if loading != null:
+		loading.queue_free()
+		loading = null
 
 
 func _teardown_match() -> void:
