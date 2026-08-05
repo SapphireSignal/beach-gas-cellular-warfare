@@ -9,6 +9,31 @@ extends Control
 ## traffic but still allow direct device-to-device connections, so typing the
 ## code can work even when the list stays empty.
 
+# ---------------------------------------------------------------------------
+# Type scale
+#
+# These were bare numbers scattered across the file, ranging 12 to 21, and they
+# were far too small — the menu is built in a 1280x720 stretch viewport and an
+# iPhone in landscape maps 720 units onto about 390 points, so everything here
+# lands on screen at roughly **half** its number:
+#
+#     font 12  ->  6.5 pt      font 21  ->  11.4 pt
+#     row 34   ->  18.4 pt tall, against Apple's 44 pt minimum tap target
+#
+# So the sizes below look absurd read as points and are correct read through
+# that 0.54 scale. Divide by two to see what a thumb actually gets. Anything
+# added here should go through these rather than a fresh literal, or the menu
+# drifts back to being unreadable one button at a time.
+# ---------------------------------------------------------------------------
+
+const FONT_SMALL := 24     ## footnotes, changelog body   ~13 pt
+const FONT_BODY := 28      ## most labels and list rows   ~15 pt
+const FONT_LABEL := 32     ## headings, values            ~17 pt, iOS body size
+const FONT_BUTTON := 38    ## anything you tap            ~21 pt
+
+const ROW_TIGHT := 64      ## dense list rows             ~35 pt
+const ROW_TAP := 82        ## anything thumb-sized        ~44 pt, the minimum
+
 @onready var cut: ColorRect = $Cut
 @onready var title: Label = $Title
 @onready var subtitle: Label = $Subtitle
@@ -100,7 +125,7 @@ func _ready() -> void:
 	_style(start_btn, Color(0.30, 0.95, 0.55))
 	_style(back_btn, Color(0.6, 0.62, 0.7))
 	_style(leave_btn, Color(0.6, 0.62, 0.7))
-	changelog_btn.add_theme_font_size_override("font_size", 12)
+	changelog_btn.add_theme_font_size_override("font_size", FONT_SMALL)
 	_style(changelog_btn, Color(0.48, 0.51, 0.64))
 	_style(changelog_back, Color(0.30, 0.95, 0.55))
 	_style(how_to_btn, Color(0.35, 0.72, 1.0))
@@ -343,7 +368,7 @@ func _refresh_lobby() -> void:
 		# and who they are to you. You can read the whole lobby at a glance.
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 8)
-		row.custom_minimum_size = Vector2(0, 30)
+		row.custom_minimum_size = Vector2(0, ROW_TIGHT)
 
 		var stripe := ColorRect.new()
 		stripe.color = accent
@@ -372,7 +397,7 @@ func _refresh_lobby() -> void:
 
 		var label := Label.new()
 		label.text = who + ("   (%s)" % ", ".join(tags) if not tags.is_empty() else "")
-		label.add_theme_font_size_override("font_size", 18)
+		label.add_theme_font_size_override("font_size", FONT_LABEL)
 		label.add_theme_color_override("font_color", Color(0.92, 0.94, 1.0))
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(label)
@@ -415,8 +440,8 @@ func _refresh_maps() -> void:
 
 		var b := Button.new()
 		b.text = str(entry["name"]) if available else "%s  🔒" % entry["name"]
-		b.custom_minimum_size = Vector2(0, 34)
-		b.add_theme_font_size_override("font_size", 12)
+		b.custom_minimum_size = Vector2(0, ROW_TAP)
+		b.add_theme_font_size_override("font_size", FONT_SMALL)
 		b.disabled = not available or not can_choose
 
 		var accent := Color(0.30, 0.95, 0.55) if available else Color(0.45, 0.47, 0.58)
@@ -445,8 +470,8 @@ func _refresh_host_list() -> void:
 		else:
 			b.text = "%s   ·   different version" % info["name"]
 			b.disabled = true
-		b.custom_minimum_size = Vector2(0, 52)
-		b.add_theme_font_size_override("font_size", 20)
+		b.custom_minimum_size = Vector2(0, ROW_TAP)
+		b.add_theme_font_size_override("font_size", FONT_BUTTON)
 		_style(b, Color(0.30, 0.95, 0.55) if compatible else Color(0.9, 0.5, 0.45))
 		b.pressed.connect(_join_ip.bind(str(info["ip"])))
 		host_list.add_child(b)
@@ -519,9 +544,9 @@ func _build_character_grid() -> void:
 		var entry := Characters.get_entry(i)
 		var b := Button.new()
 		b.text = str(entry["name"])
-		b.custom_minimum_size = Vector2(0, 40)
+		b.custom_minimum_size = Vector2(0, ROW_TAP)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.add_theme_font_size_override("font_size", 14)
+		b.add_theme_font_size_override("font_size", FONT_BODY)
 		# Their own accent colour, so the grid reads as twelve people rather
 		# than twelve identical buttons.
 		_style(b, entry["accent"] if i == Loadout.character_index
@@ -618,7 +643,7 @@ func _build_career() -> void:
 func _heading(into: VBoxContainer, text: String) -> void:
 	var label := Label.new()
 	label.text = text
-	label.add_theme_font_size_override("font_size", 17)
+	label.add_theme_font_size_override("font_size", FONT_LABEL)
 	label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.35))
 	into.add_child(label)
 
@@ -631,7 +656,7 @@ func _row(into: VBoxContainer, left: String, value: String, note: String,
 	var alpha := 0.38 if faded else 1.0
 
 	var row := HBoxContainer.new()
-	row.custom_minimum_size = Vector2(0, 30)
+	row.custom_minimum_size = Vector2(0, ROW_TIGHT)
 	row.add_theme_constant_override("separation", 14)
 
 	var stripe := ColorRect.new()
@@ -641,7 +666,7 @@ func _row(into: VBoxContainer, left: String, value: String, note: String,
 
 	var name_label := Label.new()
 	name_label.text = left
-	name_label.add_theme_font_size_override("font_size", 16)
+	name_label.add_theme_font_size_override("font_size", FONT_BODY)
 	name_label.add_theme_color_override("font_color", Color(0.86, 0.89, 0.96, alpha))
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -650,7 +675,7 @@ func _row(into: VBoxContainer, left: String, value: String, note: String,
 	if not note.is_empty():
 		var note_label := Label.new()
 		note_label.text = note
-		note_label.add_theme_font_size_override("font_size", 13)
+		note_label.add_theme_font_size_override("font_size", FONT_SMALL)
 		note_label.add_theme_color_override("font_color", Color(0.58, 0.62, 0.75, alpha))
 		note_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(note_label)
@@ -659,7 +684,7 @@ func _row(into: VBoxContainer, left: String, value: String, note: String,
 	value_label.text = value
 	value_label.custom_minimum_size = Vector2(64, 0)
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	value_label.add_theme_font_size_override("font_size", 18)
+	value_label.add_theme_font_size_override("font_size", FONT_LABEL)
 	value_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.92 * alpha))
 	value_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(value_label)
@@ -675,7 +700,7 @@ func _row(into: VBoxContainer, left: String, value: String, note: String,
 
 func _spacer(into: VBoxContainer) -> void:
 	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(0, 16)
+	spacer.custom_minimum_size = Vector2(0, 28)
 	into.add_child(spacer)
 
 
@@ -718,21 +743,21 @@ func _build_how_to() -> void:
 	for section in sections:
 		var heading := Label.new()
 		heading.text = str(section[0])
-		heading.add_theme_font_size_override("font_size", 17)
+		heading.add_theme_font_size_override("font_size", FONT_LABEL)
 		heading.add_theme_color_override("font_color", Color(1.0, 0.82, 0.35))
 		how_to_list.add_child(heading)
 
 		for line in section[1]:
 			var body := Label.new()
 			body.text = "   %s" % line
-			body.add_theme_font_size_override("font_size", 14)
+			body.add_theme_font_size_override("font_size", FONT_BODY)
 			body.add_theme_color_override("font_color", Color(0.74, 0.78, 0.88))
 			body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			body.custom_minimum_size = Vector2(690, 0)
 			how_to_list.add_child(body)
 
 		var spacer := Control.new()
-		spacer.custom_minimum_size = Vector2(0, 12)
+		spacer.custom_minimum_size = Vector2(0, 22)
 		how_to_list.add_child(spacer)
 
 
@@ -749,7 +774,7 @@ func _build_changelog() -> void:
 		var heading := Label.new()
 		heading.text = "v%s   %s%s" % [version, entry["title"],
 			"      ← you're on this" if current else ""]
-		heading.add_theme_font_size_override("font_size", 18)
+		heading.add_theme_font_size_override("font_size", FONT_LABEL)
 		heading.add_theme_color_override("font_color",
 			Color(1.0, 0.82, 0.35) if current else Color(0.88, 0.90, 0.97))
 		heading.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -758,14 +783,14 @@ func _build_changelog() -> void:
 		for note in entry["notes"]:
 			var line := Label.new()
 			line.text = "   ·  %s" % note
-			line.add_theme_font_size_override("font_size", 13)
+			line.add_theme_font_size_override("font_size", FONT_SMALL)
 			line.add_theme_color_override("font_color", Color(0.64, 0.68, 0.80))
 			line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			line.custom_minimum_size = Vector2(600, 0)
 			changelog_list.add_child(line)
 
 		var spacer := Control.new()
-		spacer.custom_minimum_size = Vector2(0, 12)
+		spacer.custom_minimum_size = Vector2(0, 22)
 		changelog_list.add_child(spacer)
 
 
@@ -790,9 +815,9 @@ func _refresh_settings() -> void:
 	for i in Settings.QUALITY_NAMES.size():
 		var b := Button.new()
 		b.text = Settings.QUALITY_NAMES[i]
-		b.custom_minimum_size = Vector2(0, 42)
+		b.custom_minimum_size = Vector2(0, ROW_TAP)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.add_theme_font_size_override("font_size", 15)
+		b.add_theme_font_size_override("font_size", FONT_BODY)
 		_style(b, Color(0.30, 0.95, 0.55) if i == Settings.quality else Color(0.45, 0.48, 0.60))
 		b.pressed.connect(_pick_quality.bind(i))
 		quality_row.add_child(b)
@@ -803,9 +828,9 @@ func _refresh_settings() -> void:
 	for i in Settings.FPS_NAMES.size():
 		var b := Button.new()
 		b.text = Settings.FPS_NAMES[i]
-		b.custom_minimum_size = Vector2(0, 40)
+		b.custom_minimum_size = Vector2(0, ROW_TAP)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.add_theme_font_size_override("font_size", 14)
+		b.add_theme_font_size_override("font_size", FONT_BODY)
 		_style(b, Color(0.35, 0.72, 1.0) if i == Settings.fps_index else Color(0.45, 0.48, 0.60))
 		b.pressed.connect(_pick_fps.bind(i))
 		fps_row.add_child(b)
@@ -818,9 +843,9 @@ func _refresh_settings() -> void:
 	for i in Settings.FIRE_NAMES.size():
 		var b := Button.new()
 		b.text = Settings.FIRE_NAMES[i]
-		b.custom_minimum_size = Vector2(0, 42)
+		b.custom_minimum_size = Vector2(0, ROW_TAP)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.add_theme_font_size_override("font_size", 15)
+		b.add_theme_font_size_override("font_size", FONT_BODY)
 		_style(b, Color(0.30, 0.95, 0.55) if i == Settings.fire_mode else Color(0.45, 0.48, 0.60))
 		b.pressed.connect(_pick_fire_mode.bind(i))
 		fire_row.add_child(b)
@@ -869,9 +894,9 @@ func _toggle_fps_counter() -> void:
 func _swatch(label: String, color: Color, selected: bool, on_press: Callable) -> Button:
 	var b := Button.new()
 	b.text = label
-	b.custom_minimum_size = Vector2(0, 54)
+	b.custom_minimum_size = Vector2(0, ROW_TAP)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.add_theme_font_size_override("font_size", 14)
+	b.add_theme_font_size_override("font_size", FONT_BODY)
 
 	# Dark cases need light text and vice versa, or half the swatches are unreadable.
 	var ink := Color(0.05, 0.05, 0.07) if color.get_luminance() > 0.45 else Color(1, 1, 1)
@@ -896,7 +921,7 @@ func _swatch(label: String, color: Color, selected: bool, on_press: Callable) ->
 ## button an obvious identity without shouting.
 func _style(button: Button, accent: Color) -> void:
 	if button.get_theme_font_size("font_size") <= 0:
-		button.add_theme_font_size_override("font_size", 21)
+		button.add_theme_font_size_override("font_size", FONT_BUTTON)
 	button.add_theme_color_override("font_color", Color(0.94, 0.95, 1.0))
 	button.add_theme_color_override("font_hover_color", Color(1, 1, 1))
 	button.add_theme_color_override("font_pressed_color", Color(1, 1, 1))

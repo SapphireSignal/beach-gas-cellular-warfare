@@ -41,7 +41,7 @@ theme_override_colors/font_shadow_color = Color(0.55, 0.06, 0.10, 0.85)
 theme_override_constants/shadow_offset_x = 0
 theme_override_constants/shadow_offset_y = 5
 theme_override_constants/shadow_outline_size = 6
-theme_override_font_sizes/font_size = 62
+theme_override_font_sizes/font_size = 78
 text = "BEACH GAS"
 horizontal_alignment = 1
 
@@ -57,7 +57,7 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(1, 0.29, 0.34, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
 theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 21
+theme_override_font_sizes/font_size = 30
 text = "C E L L U L A R   W A R F A R E"
 horizontal_alignment = 1
 
@@ -84,7 +84,7 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(0.78, 0.81, 0.9, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
 theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 26
 text = "your phone is the weapon  ·  zap them, track them, call them"
 horizontal_alignment = 1
 
@@ -104,22 +104,22 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(0.6, 0.64, 0.76, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 27
 text = "PLAYING AS  JAY"
 horizontal_alignment = 1
 
 [node name="HostBtn" type="Button" parent="MainPanel"]
-custom_minimum_size = Vector2(0, 62)
+custom_minimum_size = Vector2(0, 88)
 layout_mode = 2
 text = "HOST A GAME"
 
 [node name="JoinBtn" type="Button" parent="MainPanel"]
-custom_minimum_size = Vector2(0, 62)
+custom_minimum_size = Vector2(0, 88)
 layout_mode = 2
 text = "JOIN A GAME"
 
 [node name="PracticeBtn" type="Button" parent="MainPanel"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 text = "PRACTICE  vs BOT"
 
@@ -128,19 +128,19 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="CharacterBtn" type="Button" parent="MainPanel/ExtrasRow"]
-custom_minimum_size = Vector2(0, 46)
+custom_minimum_size = Vector2(0, 76)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "CHARACTER"
 
 [node name="CustomizeBtn" type="Button" parent="MainPanel/ExtrasRow"]
-custom_minimum_size = Vector2(0, 46)
+custom_minimum_size = Vector2(0, 76)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "PHONE"
 
 [node name="SettingsBtn" type="Button" parent="MainPanel/ExtrasRow"]
-custom_minimum_size = Vector2(0, 46)
+custom_minimum_size = Vector2(0, 76)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "SETTINGS"
@@ -150,19 +150,19 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="HowToBtn" type="Button" parent="MainPanel/InfoRow"]
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 76)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "HOW TO PLAY"
 
 [node name="LeaderboardBtn" type="Button" parent="MainPanel/InfoRow"]
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 76)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "LEADERBOARD"
 
 [node name="CareerBtn" type="Button" parent="MainPanel/InfoRow"]
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 76)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "CAREER"
@@ -184,7 +184,7 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 0.92)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 40
 text = "LEADERBOARD"
 horizontal_alignment = 1
 
@@ -199,7 +199,7 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
 [node name="LeaderboardBack" type="Button" parent="LeaderboardPanel"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 text = "DONE"
 
@@ -220,7 +220,7 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 0.92)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 40
 text = "CAREER"
 horizontal_alignment = 1
 
@@ -235,7 +235,7 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
 [node name="CareerBack" type="Button" parent="CareerPanel"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 text = "DONE"
 
@@ -256,7 +256,7 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 0.92)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 40
 text = "HOW TO PLAY"
 horizontal_alignment = 1
 
@@ -271,7 +271,7 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
 [node name="HowToBack" type="Button" parent="HowToPanel"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 text = "GOT IT"
 
@@ -292,7 +292,7 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 0.92)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 40
 text = "CHARACTER"
 horizontal_alignment = 1
 
@@ -336,7 +336,7 @@ theme_override_constants/v_separation = 10
 columns = 3
 
 [node name="CharDoneBtn" type="Button" parent="CharacterPanel"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 text = "DONE"
 
@@ -357,7 +357,7 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 0.92)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 40
 text = "SETTINGS"
 horizontal_alignment = 1
 
@@ -449,7 +449,7 @@ layout_mode = 2
 theme_override_constants/separation = 6
 
 [node name="FireBlurb" type="Label" parent="SettingsPanel/Columns/Right"]
-custom_minimum_size = Vector2(0, 46)
+custom_minimum_size = Vector2(0, 76)
 layout_mode = 2
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.45, 0.48, 0.6, 1)
@@ -494,7 +494,7 @@ text = "On a phone: left side moves, drag the right side to look, tap the right 
 autowrap_mode = 2
 
 [node name="SettingsDoneBtn" type="Button" parent="SettingsPanel"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 text = "DONE"
 
@@ -515,7 +515,7 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 0.92)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 40
 text = "YOUR PHONE"
 horizontal_alignment = 1
 
@@ -554,7 +554,7 @@ text = "screen colours stay fixed on purpose: red = zap, green = track, blue = c
 horizontal_alignment = 1
 
 [node name="CustomizeBack" type="Button" parent="CustomizePanel"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 text = "DONE"
 
@@ -575,7 +575,7 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 0.92)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 40
 text = "JOIN A GAME"
 horizontal_alignment = 1
 
@@ -583,7 +583,7 @@ horizontal_alignment = 1
 layout_mode = 2
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.68, 0.72, 0.85, 1)
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 27
 text = "looking for games on this WiFi..."
 horizontal_alignment = 1
 
@@ -696,12 +696,12 @@ theme_override_constants/v_separation = 6
 columns = 2
 
 [node name="StartBtn" type="Button" parent="LobbyPanel"]
-custom_minimum_size = Vector2(0, 62)
+custom_minimum_size = Vector2(0, 88)
 layout_mode = 2
 text = "START MATCH"
 
 [node name="LeaveBtn" type="Button" parent="LobbyPanel"]
-custom_minimum_size = Vector2(0, 46)
+custom_minimum_size = Vector2(0, 76)
 layout_mode = 2
 text = "LEAVE"
 
@@ -753,7 +753,7 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 0.9)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 40
 text = "CHANGELOG"
 horizontal_alignment = 1
 
@@ -768,7 +768,7 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
 [node name="ChangelogBack" type="Button" parent="ChangelogPanel"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 text = "DONE"
 
@@ -784,7 +784,7 @@ offset_bottom = -60.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 26
 horizontal_alignment = 1
 
 [node name="NetLabel" type="Label" parent="."]
