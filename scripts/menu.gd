@@ -46,6 +46,7 @@ const ROW_TAP := 82        ## anything thumb-sized        ~44 pt, the minimum
 @onready var host_btn: Button = $MainPanel/HostBtn
 @onready var join_btn: Button = $MainPanel/JoinBtn
 @onready var practice_btn: Button = $MainPanel/PracticeBtn
+@onready var shift_btn: Button = $MainPanel/ShiftBtn
 @onready var customize_btn: Button = $MainPanel/ExtrasRow/CustomizeBtn
 @onready var character_btn: Button = $MainPanel/ExtrasRow/CharacterBtn
 @onready var settings_btn: Button = $MainPanel/ExtrasRow/SettingsBtn
@@ -113,6 +114,7 @@ func _ready() -> void:
 	_style(host_btn, Color(1.0, 0.32, 0.36))
 	_style(join_btn, Color(0.35, 0.72, 1.0))
 	_style(practice_btn, Color(0.7, 0.62, 0.95))
+	_style(shift_btn, Color(0.30, 0.95, 0.55))
 	_style(customize_btn, Color(0.55, 0.58, 0.72))
 	_style(character_btn, Color(0.95, 0.62, 0.35))
 	_style(settings_btn, Color(0.55, 0.58, 0.72))
@@ -139,6 +141,7 @@ func _ready() -> void:
 	host_btn.pressed.connect(_on_host)
 	join_btn.pressed.connect(_on_join_pressed)
 	practice_btn.pressed.connect(_on_practice)
+	shift_btn.pressed.connect(_on_shift)
 	customize_btn.pressed.connect(func(): _go("customize"))
 	customize_back.pressed.connect(func(): _go("main"))
 	character_btn.pressed.connect(func(): _go("character"))
@@ -257,6 +260,15 @@ func _on_host() -> void:
 	
 	if Net.host_game(_my_name()):
 		_go("lobby")
+
+
+## Working a shift instead of fighting on the forecourt. Goes straight to
+## main.gd rather than through Net — a shift is single player and local, and
+## routing it through the lobby would mean syncing a match that has no peers.
+func _on_shift() -> void:
+	var root = get_tree().current_scene
+	if root != null and root.has_method("start_shift"):
+		root.start_shift()
 
 
 func _on_practice() -> void:
@@ -440,7 +452,9 @@ func _refresh_maps() -> void:
 
 		var b := Button.new()
 		b.text = str(entry["name"]) if available else "%s  🔒" % entry["name"]
-		b.custom_minimum_size = Vector2(0, ROW_TAP)
+		# ROW_TIGHT, not ROW_TAP: this list is five entries now and at 82 each it
+		# pushed START and LEAVE off the bottom of the lobby entirely.
+		b.custom_minimum_size = Vector2(0, ROW_TIGHT)
 		b.add_theme_font_size_override("font_size", FONT_SMALL)
 		b.disabled = not available or not can_choose
 

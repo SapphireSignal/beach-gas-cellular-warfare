@@ -68,6 +68,13 @@ var player = null
 var phone = null
 var touch_mode := true
 
+## Set when this HUD is driving a shift instead of a match. The touch routing,
+## stick and look handling are identical — only the buttons and what they mean
+## change — so shift mode reuses this whole file rather than duplicating the
+## one genuinely hard part of the game's input.
+var shift = null
+var _interact_held := false
+
 ## finger index -> what that finger is doing
 var _roles: Dictionary = {}
 ## finger index -> { at: Vector2, travel: float, started: float } for look taps
@@ -181,6 +188,35 @@ func _apply_safe_area() -> void:
 		full.offset_bottom = -offset_bottom
 
 
+## Turn the combat HUD into a work HUD: no weapon, no radar, and ZAP becomes
+## the one button you press to do whatever the job currently is.
+func set_shift(controller) -> void:
+	shift = controller
+	shift.objective_changed.connect(_on_objective)
+	shift.money_changed.connect(_on_money)
+
+	for b in [track_btn, call_btn, crouch_btn, score_btn]:
+		b.visible = false
+	radar.visible = false
+	zap_btn.label = "FILL"
+	zap_btn.color = Palette.TRACK
+	zap_btn.sublabel = ""
+	quit_btn.label = "END SHIFT"
+
+
+func _on_objective(text: String, hint: String) -> void:
+	score_label.text = text
+	feed_label.text = hint
+
+
+func _on_money(cash: float, earned: float) -> void:
+	if cash > 0.0:
+		hint_label.text = "holding $%.2f change  ·  earned $%.2f" % [cash, earned]
+	else:
+		hint_label.text = "earned $%.2f" % earned
+	hint_label.visible = true
+
+
 func _apply_input_mode() -> void:
 	# The buttons stay on screen in desktop mode as pure readouts — they're the
 	# only place the cooldown numbers live, and hit testing is touch-only anyway.
@@ -278,6 +314,16 @@ func _drive_player() -> void:
 	# under the reticle and with a clear line to them.
 	# Not while the setup panel is up — otherwise the moment you open it to turn
 	# auto-fire off, it keeps shooting at whatever the crosshair was left on.
+	if shift != null:
+		# The interact button's verb follows the objective every frame rather
+		# than being pushed on state change, so it can never show a stale one.
+		var verb: String = shift.prompt()
+		zap_btn.label = verb if verb != "" else "—"
+		zap_btn.dim = verb == ""
+		if _interact_held:
+			shift.interact(true, get_process_delta_time())
+		return
+
 	if (Settings.fire_mode == Settings.Fire.AUTO and phone != null
 			and not settings_panel.visible
 			and phone.can_zap() and player.aim_target(AUTO_FIRE_CONE) != null):
@@ -430,6 +476,7 @@ func _finger_up(index: int) -> void:
 			_finish_look_touch(index)
 		"zap":
 			zap_btn.held = false
+			_interact_held = false
 		"track":
 			track_btn.held = false
 		"call":
@@ -471,10 +518,16 @@ func _finish_look_touch(index: int) -> void:
 
 
 func _press(what: String) -> void:
-	if phone == null:
+	# A shift has no weapon, so the usual "no phone, nothing to do" guard would
+	# swallow every button on this HUD.
+	if phone == null and shift == null:
 		return
 	match what:
 		"zap":
+			if shift != null:
+				_interact_held = true
+				shift.interact_pressed()
+				return
 			if not phone.try_zap():
 				_say(phone.zap_block_reason(), 1.4)
 		"track":
@@ -491,6 +544,11 @@ func _press(what: String) -> void:
 		"score":
 			_scoreboard_pinned = not _scoreboard_pinned
 		"quit":
+			if shift != null:
+				# No lobby to leave — hand it back to main.gd, which owns the
+				# swap between menu, match and shift.
+				Net.left_match.emit()
+				return
 			Net.leave()
 		"settings":
 			_open_settings()

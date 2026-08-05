@@ -235,7 +235,9 @@ func _store() -> void:
 	var wall_h := 4.0
 	var face := at.z + d * 0.5
 	var door_x := at.x + 3.6
-	var door_w := 2.2
+	# Wide. A 2.2m opening was tight enough that walking in caught the jamb, and
+	# a shop you bounce off isn't a shop.
+	var door_w := 3.0
 
 	# Walk-in, not a solid block. Four walls with a gap for the door, so the
 	# inside is a real room you can be fought in — the counter and the cooler
@@ -298,8 +300,10 @@ func _store() -> void:
 	_boulder(Vector3(at.x + 5.5, 0, f + 3.4), 1.1)
 	for x: float in [at.x - 9.2, at.x - 1.6]:
 		_box(Vector3(x, 0.7, f + 0.9), Vector3(0.34, 1.4, 0.34), "trunk")
-	_box(Vector3(at.x + 6.2, 1.0, f + 0.5), Vector3(1.0, 2.0, 0.8), "sign")
-	_box(Vector3(at.x + 5.0, 0.55, f + 0.9), Vector3(0.8, 1.1, 0.8), "dark_metal")
+	# Pepsi machine and bin, moved clear of the doorway — they were close enough
+	# to it that walking in meant threading between them.
+	_box(Vector3(at.x + 8.4, 1.0, f + 0.5), Vector3(1.0, 2.0, 0.8), "sign")
+	_box(Vector3(at.x + 7.2, 0.55, f + 1.3), Vector3(0.8, 1.1, 0.8), "dark_metal")
 
 	_propane_and_firewood(Vector3(at.x - w * 0.5 - 4.5, 0.0, at.z + 1.0))
 
@@ -360,22 +364,24 @@ func _store_interior(at: Vector3, w: float, d: float) -> void:
 ## Propane cages and stacked firewood, left of the store. Both are out front in
 ## every photo, and they double as the only hard cover on that approach.
 func _propane_and_firewood(at: Vector3) -> void:
-	# Two mesh cages of cylinders.
+	# Barbecue bottles in a mesh cage. These were far too big before — a 20lb BBQ
+	# tank is about 30cm across and 60cm tall, not the oil drums I first built.
 	for cage in 2:
-		var cz: float = at.z + cage * 2.6
-		_box(Vector3(at.x, 0.06, cz), Vector3(2.2, 0.12, 2.2), "concrete")
+		var cz: float = at.z + cage * 1.9
+		_box(Vector3(at.x, 0.05, cz), Vector3(1.6, 0.1, 1.6), "concrete")
 		# Frame: four uprights and a top rail, left open so the bottles show.
-		for ox: float in [-1.0, 1.0]:
-			for oz: float in [-1.0, 1.0]:
-				_box(Vector3(at.x + ox, 0.9, cz + oz), Vector3(0.1, 1.8, 0.1), "metal")
-		_box(Vector3(at.x, 1.78, cz), Vector3(2.2, 0.1, 2.2), "metal")
+		for ox: float in [-0.75, 0.75]:
+			for oz: float in [-0.75, 0.75]:
+				_box(Vector3(at.x + ox, 0.62, cz + oz), Vector3(0.07, 1.25, 0.07),
+					"metal")
+		_box(Vector3(at.x, 1.24, cz), Vector3(1.6, 0.07, 1.6), "metal")
 		for bx in 2:
 			for bz in 2:
-				_box(Vector3(at.x - 0.45 + bx * 0.9, 0.55, cz - 0.45 + bz * 0.9),
-					Vector3(0.42, 0.9, 0.42), "tank_white")
+				_box(Vector3(at.x - 0.34 + bx * 0.68, 0.32, cz - 0.34 + bz * 0.68),
+					Vector3(0.3, 0.62, 0.3), "tank_white", false)
 		# Mesh, faked with thin bars rather than a transparent texture.
-		for i in 5:
-			_box(Vector3(at.x, 0.9, cz - 1.0 + i * 0.5), Vector3(2.2, 1.8, 0.04),
+		for i in 4:
+			_box(Vector3(at.x, 0.62, cz - 0.75 + i * 0.5), Vector3(1.6, 1.25, 0.03),
 				"metal", false)
 
 	# Firewood: bundles stacked on a pallet.
@@ -497,14 +503,16 @@ func _picnic_table(at: Vector3, yaw: float) -> void:
 ## absence is most of why this map plays open.
 func _pump_islands() -> void:
 	for island: float in [-9.0, 9.0]:
-		# The concrete pad each island sits on.
-		_box(Vector3(island, 0.06, 0.0), Vector3(7.0, 0.12, 3.4), "concrete")
-		for offset: float in [-1.8, 1.8]:
-			_pump(Vector3(island + offset, 0.12, 0.0))
+		# The pad runs front-to-back with one pump behind the other, so two cars
+		# queue nose to tail at the same island. That's how the real ones are
+		# laid out, and it opens the lanes up sideways.
+		_box(Vector3(island, 0.06, 0.0), Vector3(3.4, 0.12, 9.0), "concrete")
+		for offset: float in [-2.4, 2.4]:
+			_pump(Vector3(island, 0.12, offset))
 		# Bollards: four to a pad, which is what stops a car hitting a pump and
 		# what makes the islands read as islands from across the lot.
-		for bx: float in [-3.2, 3.2]:
-			for bz: float in [-1.4, 1.4]:
+		for bx: float in [-1.4, 1.4]:
+			for bz: float in [-4.2, 4.2]:
 				_box(Vector3(island + bx, 0.55, bz), Vector3(0.22, 1.1, 0.22),
 					"tank_white")
 		# An orange cone by each island. Every photo has them.
@@ -539,19 +547,27 @@ func _cone(at: Vector3) -> void:
 
 ## The two horizontal tanks on the west side, on their steel cradles.
 func _fuel_tanks() -> void:
+	# In the open ground to the right of Summerleaf, which is where they stand.
+	# These are the bulk tanks the whole station is supplied from, so they're
+	# big — 2.2m across, 13m long — and they're the largest piece of hard cover
+	# anywhere on the map.
 	for i in 2:
-		var at := Vector3(-29.0, 0.0, -8.0 + i * 5.5)
+		var at := Vector3(23.0, 0.0, -19.0 + i * 6.5)
 		var root := Node3D.new()
 		root.position = at
 		root.rotation_degrees = Vector3(0, 90.0, 0)
 		add_child(root)
-		_local_cylinder(root, Vector3(0, 1.7, 0), 1.5, 9.0, _mats["tank_white"])
-		# Cradles and the yellow ladder rail.
-		for z: float in [-3.2, 3.2]:
-			_local_box(root, Vector3(0, 0.35, z), Vector3(3.2, 0.7, 0.7),
+		_local_cylinder(root, Vector3(0, 2.4, 0), 2.2, 13.0, _mats["tank_white"])
+		# Steel saddles under each end, the ladder rail, and the top fitting.
+		for z: float in [-4.6, 4.6]:
+			_local_box(root, Vector3(0, 0.5, z), Vector3(4.6, 1.0, 1.0),
 				_mats["metal"])
-		_local_box(root, Vector3(1.7, 1.2, 3.6), Vector3(0.1, 2.4, 0.1),
+		_local_box(root, Vector3(2.4, 1.9, 5.2), Vector3(0.12, 3.4, 0.12),
 			_mats["paint"])
+		_local_box(root, Vector3(0, 4.7, 0), Vector3(0.5, 0.4, 0.5), _mats["metal"])
+		for bz: float in [-6.0, 0.0, 6.0]:
+			_local_box(root, Vector3(3.4, 0.6, bz), Vector3(0.24, 1.2, 0.24),
+				_mats["tank_white"])
 
 
 ## Tall white poles with the flat rectangular heads from the photos. These carry

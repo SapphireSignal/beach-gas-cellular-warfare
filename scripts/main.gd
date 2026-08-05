@@ -4,6 +4,7 @@ extends Node
 const HUD_SCENE := preload("res://scenes/hud.tscn")
 const BACKDROP_SCRIPT := preload("res://scripts/menu_backdrop.gd")
 const LOADING_SCRIPT := preload("res://scripts/loading.gd")
+const SHIFT_SCRIPT := preload("res://scripts/shift.gd")
 const POST_MATCH_SECONDS := 6.0
 
 @onready var menu_layer: CanvasLayer = $MenuLayer
@@ -18,6 +19,8 @@ var backdrop: Node3D = null
 ## as the menu being rebuilt.
 var loading_layer: CanvasLayer = null
 var loading: Control = null
+## The shift mode, when one is running. Mutually exclusive with `world`.
+var shift: Node3D = null
 
 
 var _autostart := false
@@ -86,7 +89,12 @@ func _boot_sequence() -> void:
 	# called before _handle_command_line() sets it, and getting that wrong meant
 	# a windowed --practice run tore down the *match's* loading screen mid-build.
 	var args := OS.get_cmdline_user_args()
-	var scripted: bool = "--practice" in args or "--autohost" in args
+	# --tour belongs in this list too: it drives the menu panels directly and
+	# screenshots them, so a boot sequence that hides the menu behind a loading
+	# screen makes every --shots capture come out as empty sky. That is exactly
+	# what it did until this line included it.
+	var scripted: bool = ("--practice" in args or "--autohost" in args
+		or "--tour" in args)
 	for a in args:
 		if a.begins_with("--autojoin="):
 			scripted = true
@@ -112,6 +120,44 @@ func _boot_sequence() -> void:
 
 	menu_layer.show()
 	_hide_loading()
+
+
+## Working a shift: same station, no weapon, no networking.
+func start_shift() -> void:
+	_show_loading("CLOCKING IN", "Beach Gas")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	_teardown_match()
+	_stop_backdrop()
+	menu_layer.hide()
+
+	_set_loading(0.3, "opening up")
+	await get_tree().process_frame
+
+	shift = SHIFT_SCRIPT.new()
+	game_root.add_child(shift)
+
+	_set_loading(0.8, "finding your apron")
+	await get_tree().process_frame
+
+	hud = HUD_SCENE.instantiate()
+	hud_layer.add_child(hud)
+	hud.set_shift(shift)
+	hud.player = shift.player
+	if hud.has_method("warm_up"):
+		await hud.warm_up()
+
+	_set_loading(1.0, "")
+	await get_tree().process_frame
+	_hide_loading()
+
+
+func end_shift() -> void:
+	if shift != null:
+		shift.queue_free()
+		shift = null
+	_back_to_menu()
 
 
 func _process(_delta: float) -> void:
@@ -293,6 +339,9 @@ func _on_net_error(msg: String) -> void:
 
 ## Quit button inside a match.
 func _on_left_match() -> void:
+	if shift != null:
+		end_shift()
+		return
 	if world != null:
 		_back_to_menu()
 

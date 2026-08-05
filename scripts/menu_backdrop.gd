@@ -30,7 +30,7 @@ const SHOTS: Array[Dictionary] = [
 		"look": Vector3(4.0, 2.6, -13.0), "fov": 60.0,
 	},
 	{   # Past the tanks, looking back at the forecourt.
-		"from": Vector3(-31.6, 2.2, 5.4), "to": Vector3(-28.6, 2.4, 11.4),
+		"from": Vector3(-34.4, 2.2, 2.6), "to": Vector3(-31.4, 2.4, 8.6),
 		"look": Vector3(6.0, 2.0, -2.0), "fov": 62.0,
 	},
 	{   # Up at the pylon sign from the road side.
