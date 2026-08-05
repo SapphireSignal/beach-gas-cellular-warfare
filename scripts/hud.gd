@@ -194,6 +194,10 @@ func set_shift(controller) -> void:
 	shift = controller
 	shift.objective_changed.connect(_on_objective)
 	shift.money_changed.connect(_on_money)
+	# Shift emits its first objective in _ready(), before this HUD exists to
+	# hear it - so ask for it again now that we're listening. Without this the
+	# banner sat empty and the mode looked like it wasn't doing anything.
+	shift.announce()
 
 	for b in [track_btn, call_btn, crouch_btn, score_btn]:
 		b.visible = false
@@ -253,6 +257,12 @@ func _process(delta: float) -> void:
 
 func _acquire_player() -> void:
 	if player != null and is_instance_valid(player):
+		return
+	# A shift hands us its player directly and has no Net.world to look in.
+	# Without this the stick drove nothing at all, because `player` stayed null
+	# and _drive_player() is only called once we have one.
+	if shift != null:
+		player = shift.player
 		return
 	if Net.world == null:
 		return

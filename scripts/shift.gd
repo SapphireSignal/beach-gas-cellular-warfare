@@ -129,6 +129,12 @@ func _set_state(next: int) -> void:
 
 ## Where the player is currently meant to be. Drives both the on-screen marker
 ## and the interact prompt, so they can never disagree about the objective.
+## Re-emit the current objective. The HUD calls this once it has connected,
+## since the first _set_state() happens before it exists.
+func announce() -> void:
+	_set_state(_state)
+
+
 func target_position() -> Vector3:
 	match _state:
 		State.CLOCK_IN, State.GET_CHANGE:

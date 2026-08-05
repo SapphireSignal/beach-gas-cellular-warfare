@@ -36,6 +36,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Release notes are built from commit subjects, and a shallow clone
+          # has none to read.
+          fetch-depth: 50
 
       - name: Show toolchain
         run: |
@@ -240,54 +244,98 @@ jobs:
         run: |
           set -eux
           SIZE=$(stat -f%z ios/beachgas.ipa)
-          DATE=$(date -u +%Y-%m-%d)
           BASE="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${BUILD}"
-          cat > altstore.json <<JSON
-          {
-            "name": "Beach Gas",
-            "identifier": "com.jay.beachgas.source",
-            "subtitle": "Your phone is the weapon.",
-            "apps": [
-              {
-                "name": "Beach Gas: Cellular Warfare",
-                "bundleIdentifier": "com.jay.beachgas",
-                "developerName": "Sapphire Signal",
-                "subtitle": "Zap them, track them, call them.",
-                "localizedDescription": "A first-person duel where your phone is the weapon. Up to 8 players over local WiFi, no internet required.",
-                "iconURL": "${BASE}/beachgas-icon.png",
-                "tintColor": "E84A55",
-                "category": "games",
-                "appPermissions": {
-                  "entitlements": [],
-                  "privacy": {
-                    "NSLocalNetworkUsageDescription": "Beach Gas uses your local network to find and play with nearby players."
-                  }
-                },
-                "versions": [
-                  {
-                    "version": "${BUILD}",
-                    "date": "${DATE}",
-                    "size": ${SIZE},
-                    "downloadURL": "${BASE}/beachgas.ipa",
-                    "minOSVersion": "14.0",
-                    "localizedDescription": "Automated build."
-                  }
-                ]
-              }
-            ]
+
+          # Written by Python rather than a heredoc so the release notes can be
+          # JSON-escaped properly, and so the previous versions can be read back
+          # and kept. The old heredoc rewrote the file from scratch every build,
+          # which is why AltStore only ever showed one version and why every
+          # update said "Automated build."
+          BUILD="$BUILD" SIZE="$SIZE" BASE="$BASE" python3 - <<'PY'
+          import json, os, subprocess, datetime
+
+          build = os.environ["BUILD"]
+          size = int(os.environ["SIZE"])
+          base = os.environ["BASE"]
+
+          # What actually changed: the subjects of every commit since the last
+          # release tag, or the last few if there is no previous tag.
+          def sh(*args):
+              return subprocess.run(args, capture_output=True, text=True).stdout.strip()
+
+          prev = sh("git", "describe", "--tags", "--abbrev=0", "--match", "v*", "HEAD^")
+          rng = "%s..HEAD" % prev if prev else "-8"
+          subjects = [l for l in sh("git", "log", "--pretty=%s", rng).splitlines() if l]
+          # Drop the manifest commits this workflow makes itself - nobody wants
+          # "AltStore manifest for 1.2.0.21" in their release notes.
+          subjects = [l for l in subjects if not l.startswith("AltStore manifest for")]
+          notes = "\n".join("- " + l for l in subjects[:8]) or "Maintenance build."
+
+          # A bare date is read as midnight UTC, which lands on the previous day
+          # in any western timezone - which is why an update pushed this evening
+          # showed as "Yesterday". A full timestamp fixes it.
+          now = datetime.datetime.now(datetime.timezone.utc)
+          entry = {
+              "version": build,
+              "date": now.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+              "size": size,
+              "downloadURL": "%s/beachgas.ipa" % base,
+              "minOSVersion": "14.0",
+              "localizedDescription": notes,
           }
-          JSON
+
+          # Keep the history so AltStore can show past updates.
+          versions = []
+          try:
+              with open("altstore.json") as f:
+                  versions = json.load(f)["apps"][0].get("versions", [])
+          except Exception:
+              pass
+          versions = [v for v in versions if v.get("version") != build]
+          versions.insert(0, entry)
+          versions = versions[:20]
+
+          manifest = {
+              "name": "Beach Gas",
+              "identifier": "com.jay.beachgas.source",
+              "subtitle": "Your phone is the weapon.",
+              "apps": [{
+                  "name": "Beach Gas: Cellular Warfare",
+                  "bundleIdentifier": "com.jay.beachgas",
+                  "developerName": "Sapphire Signal",
+                  "subtitle": "Zap them, track them, call them.",
+                  "localizedDescription":
+                      "A first-person duel where your phone is the weapon. "
+                      "Up to 8 players over local WiFi, no internet required.",
+                  "iconURL": "%s/beachgas-icon.png" % base,
+                  "tintColor": "E84A55",
+                  "category": "games",
+                  "appPermissions": {
+                      "entitlements": [],
+                      "privacy": {
+                          "NSLocalNetworkUsageDescription":
+                              "Beach Gas uses your local network to find and "
+                              "play with nearby players.",
+                      },
+                  },
+                  "versions": versions,
+              }],
+          }
+          with open("altstore.json", "w") as f:
+              json.dump(manifest, f, indent=2)
+          print("wrote %d version(s); notes:\n%s" % (len(versions), notes))
+          PY
+
           python3 -m json.tool altstore.json > /dev/null   # fail loudly on bad JSON
 
-          # appPermissions is what stops AltStore warning "requires additional
-          # permission not specified by the source" on every install. It has to
-          # list exactly what the app's Info.plist declares and nothing more, so
-          # check the two against each other rather than trusting they match —
-          # a stale entry here brings the warning straight back.
-          # The app bundle's own Info.plist, explicitly. A bare `find -name
-          # Info.plist | head -1` matches "Launch Screen.storyboardc/Info.plist"
-          # first, which declares no permissions and fails this check against a
-          # perfectly good build.
+          # appPermissions has to list exactly what the app's Info.plist
+          # declares and nothing more, so check the two against each other
+          # rather than trusting they match - a stale entry brings AltStore's
+          # "additional permission" warning straight back.
+          #
+          # The app bundle's own Info.plist, explicitly. A bare find matches
+          # "Launch Screen.storyboardc/Info.plist" first, which declares no
+          # permissions and fails this against a perfectly good build.
           PLIST=$(ls -d ios/Payload/*.app/Info.plist | head -1)
           echo "checking permissions in: $PLIST"
           plutil -convert json -o plist.json "$PLIST"
@@ -299,10 +347,8 @@ jobs:
           declared = set(manifest)
           if in_app != declared:
               print("permission mismatch between app and manifest", file=sys.stderr)
-              print("  app declares:      %s" % (sorted(in_app) or "none"), file=sys.stderr)
-              print("  manifest declares: %s" % (sorted(declared) or "none"), file=sys.stderr)
-              print("  only in app:       %s" % sorted(in_app - declared), file=sys.stderr)
-              print("  only in manifest:  %s" % sorted(declared - in_app), file=sys.stderr)
+              print("  only in app:      %s" % sorted(in_app - declared), file=sys.stderr)
+              print("  only in manifest: %s" % sorted(declared - in_app), file=sys.stderr)
               sys.exit(1)
           print("permissions agree: %s" % sorted(declared))
           PY

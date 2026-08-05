@@ -447,21 +447,44 @@ func _summerleaf() -> void:
 	var d := 8.0
 	var h := 3.4
 
-	_box(at + Vector3(0, h * 0.5, 0), Vector3(w, h, d), "wood")
+	var wall_z := at.z + d * 0.5
+	var door_w := 3.0
+
+	# Walk-in, like the store. Four walls with a doorway rather than a solid
+	# block — verified with tools/check_doors.gd, which is how we found this was
+	# still sealed after it was supposed to have been opened up.
+	_box(Vector3(at.x, 0.05, at.z), Vector3(w, 0.1, d), "concrete")
+	_box(Vector3(at.x, h * 0.5, at.z - d * 0.5), Vector3(w, h, 0.3), "wood")
+	_box(Vector3(at.x - w * 0.5, h * 0.5, at.z), Vector3(0.3, h, d), "wood")
+	_box(Vector3(at.x + w * 0.5, h * 0.5, at.z), Vector3(0.3, h, d), "wood")
+
+	var seg: float = (w - door_w) * 0.5
+	_box(Vector3(at.x - (door_w + seg) * 0.5, h * 0.5, wall_z),
+		Vector3(seg, h, 0.3), "wood")
+	_box(Vector3(at.x + (door_w + seg) * 0.5, h * 0.5, wall_z),
+		Vector3(seg, h, 0.3), "wood")
+	# Lintel, high enough to walk under.
+	_box(Vector3(at.x, h - 0.3, wall_z), Vector3(door_w, 0.6, 0.3), "wood", false)
+
 	_box(at + Vector3(0, h + 0.12, 0), Vector3(w + 0.8, 0.22, d + 0.8),
 		"metal", false)
 
-	var face := at.z + d * 0.5 + 0.06
-	# Screened windows, the OPEN sign, and the leaf emblem over the door.
-	_box(Vector3(at.x - 2.6, 2.1, face), Vector3(2.2, 1.3, 0.10), "glass")
-	_box(Vector3(at.x + 2.4, 2.1, face), Vector3(2.0, 1.3, 0.10), "glass")
-	_box(Vector3(at.x + 0.0, 1.3, face), Vector3(1.4, 2.6, 0.12), "wood")
-	_leaf_emblem(Vector3(at.x, 3.0, face + 0.08), 0.9)
-	_box(Vector3(at.x + 3.9, 2.6, face + 0.05), Vector3(0.9, 0.4, 0.06), "sign")
+	_summerleaf_interior(at, w, d)
 
-	# Cedar fence running west from it, and a picnic table out front.
-	for i in 7:
-		_box(Vector3(at.x - w * 0.5 - 0.4 - i * 1.6, 1.0, face + 0.6),
+	var face := wall_z + 0.2
+	# Windows either side, the OPEN sign, and the leaf emblem over the door.
+	# All non-colliding — a pane of glass you bounce off is not a window.
+	_box(Vector3(at.x - 3.4, 2.1, face), Vector3(2.0, 1.3, 0.10), "glass", false)
+	_box(Vector3(at.x + 3.4, 2.1, face), Vector3(2.0, 1.3, 0.10), "glass", false)
+	_leaf_emblem(Vector3(at.x, 3.0, face + 0.08), 0.9)
+	_box(Vector3(at.x + 4.2, 2.6, face + 0.05), Vector3(0.9, 0.4, 0.06),
+		"sign", false)
+
+	# Cedar fence. It used to start 0.4m off Summerleaf's west wall and run
+	# straight across the front of the STORE's doorway — check_doors.gd caught
+	# it as Collision_cedar sitting in the walk-in path. It now stops well short.
+	for i in 3:
+		_box(Vector3(at.x - w * 0.5 - 1.2 - i * 1.6, 1.0, face + 0.6),
 			Vector3(1.5, 2.0, 0.14), "cedar")
 	_picnic_table(Vector3(at.x + 6.5, 0, face + 2.2), -14.0)
 
@@ -479,6 +502,39 @@ func _summerleaf() -> void:
 			var a := TAU * float(side) / 4.0
 			_box(ring + Vector3(cos(a) * 0.26, sin(a) * 0.26, 0.0),
 				Vector3(0.34, 0.14, 0.14), rings[i], false)
+
+
+## Inside Summerleaf: plants growing down one wall under the purple lights, and
+## jars on the shelving behind the counter. It's a dispensary — the plants and
+## the product are the room.
+func _summerleaf_interior(at: Vector3, w: float, d: float) -> void:
+	var back := at.z - d * 0.5 + 0.8
+
+	# Counter across the back with the jar shelving behind it.
+	_box(Vector3(at.x, 0.55, back + 1.4), Vector3(6.0, 1.1, 0.9), "shelf")
+	_box(Vector3(at.x, 1.6, back + 0.2), Vector3(6.4, 2.2, 0.3), "wood")
+	for row in 3:
+		_box(Vector3(at.x, 1.0 + row * 0.62, back + 0.42),
+			Vector3(6.0, 0.09, 0.36), "shelf", false)
+		for i in 9:
+			# Jars, lit slightly so the shelf reads from the doorway.
+			_box(Vector3(at.x - 2.6 + i * 0.65, 1.2 + row * 0.62, back + 0.42),
+				Vector3(0.3, 0.34, 0.3), "grow", false)
+
+	# Plants along the left wall, each under its own grow light. The lights are
+	# emissive, not omni — this map spends its eight slots on the lot poles.
+	for i in 3:
+		var pz: float = at.z - 1.2 + i * 1.6
+		_box(Vector3(at.x - w * 0.5 + 1.3, 0.3, pz), Vector3(0.8, 0.6, 0.8), "pot")
+		_plant(Vector3(at.x - w * 0.5 + 1.3, 0.6, pz), 1.15)
+		_box(Vector3(at.x - w * 0.5 + 1.3, 2.7, pz), Vector3(0.9, 0.1, 0.6),
+			"grow", false)
+
+	# A low display table down the right, so the room has something in it.
+	_box(Vector3(at.x + 2.8, 0.45, at.z + 0.8), Vector3(1.4, 0.9, 2.6), "shelf")
+	for i in 3:
+		_box(Vector3(at.x + 2.8, 1.06, at.z + 0.0 + i * 0.9),
+			Vector3(0.34, 0.32, 0.34), "grow", false)
 
 
 func _picnic_table(at: Vector3, yaw: float) -> void:

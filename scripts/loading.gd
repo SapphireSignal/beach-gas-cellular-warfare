@@ -21,6 +21,7 @@ const FADE_TIME := 0.18
 var _label: Label
 var _detail: Label
 var _bar_fill: ColorRect
+var _bar_head: ColorRect
 var _bar_back: ColorRect
 var _spinner: ColorRect
 var _elapsed := 0.0
@@ -93,6 +94,12 @@ func _ready() -> void:
 	_bar_fill.size = Vector2(0.0, 8.0)
 	_bar_back.add_child(_bar_fill)
 
+	_bar_head = ColorRect.new()
+	_bar_head.color = Color(1.0, 0.86, 0.84)
+	_bar_head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bar_head.size = Vector2(18.0, 8.0)
+	_bar_back.add_child(_bar_head)
+
 	# A travelling dash above the bar. Progress here is a guess — generation
 	# can't report how far along it is — so this carries "still working" while
 	# the bar carries "roughly this far".
@@ -110,22 +117,51 @@ func _ready() -> void:
 	modulate.a = 1.0
 
 
+## The bar is driven by wall-clock time, not by frames.
+##
+## This is the whole trick, and it's why the first version looked frozen: level
+## generation *blocks the main thread*, so no frames render while it runs. A bar
+## that only advances in _process therefore cannot move during the very work it
+## is reporting — it sits still, then jumps at the end.
+##
+## So the bar creeps forward on its own toward the next milestone, using real
+## elapsed time, and each completed stage snaps the floor up. It never goes
+## backwards and never reaches 100% early, which is what a bar has to promise.
 func _process(delta: float) -> void:
 	_elapsed += delta
 
-	# Ease toward the target rather than snapping, so a jump from 0.2 to 0.9
-	# reads as progress rather than a glitch.
-	_progress = lerpf(_progress, _target, clampf(delta * 6.0, 0.0, 1.0))
+	# Creep toward the target, slowing as it approaches so it never arrives
+	# before the work does. Asymptotic, so it can idle just short of a stage
+	# boundary for as long as that stage takes.
+	var gap: float = _target - _progress
+	if gap > 0.0:
+		_progress += gap * (1.0 - exp(-delta * 3.2))
 	if _bar_back != null:
-		_bar_fill.size = Vector2(_bar_back.size.x * _progress, _bar_back.size.y)
-		var span := _bar_back.size.x - _spinner.size.x
-		_spinner.position.x = span * (0.5 - 0.5 * cos(_elapsed * 2.4))
+		var w: float = _bar_back.size.x
+		_bar_fill.size = Vector2(w * _progress, _bar_back.size.y)
+		# A brighter head on the leading edge, so the eye has something to track
+		# even when the fill is barely moving.
+		_bar_head.position.x = maxf(0.0, w * _progress - _bar_head.size.x)
+		_bar_head.visible = _progress > 0.02 and _progress < 0.995
+		# The travelling dash carries "still working" while the bar carries
+		# "roughly this far". It runs on its own clock so it keeps moving even
+		# when progress doesn't.
+		var span: float = w - _spinner.size.x
+		_spinner.position.x = span * (0.5 - 0.5 * cos(_elapsed * 2.2))
+		_spinner.modulate.a = 0.35 + 0.35 * sin(_elapsed * 5.0)
+
+	# The title breathes very slightly. Static text on a still screen is the
+	# thing that makes a phone look hung.
+	if _label != null:
+		_label.modulate.a = 0.86 + 0.14 * sin(_elapsed * 2.6)
 
 
 ## `amount` is 0..1 and approximate — nothing here can truthfully report how far
 ## through a level build it is. It is honest about *stages*, not percentages.
 func set_progress(amount: float, detail := "") -> void:
-	_target = clampf(amount, 0.0, 1.0)
+	# Monotonic. A bar that goes backwards reads as a bug even when the number
+	# behind it is honest.
+	_target = maxf(_target, clampf(amount, 0.0, 1.0))
 	if _detail != null and not detail.is_empty():
 		_detail.text = detail
 
