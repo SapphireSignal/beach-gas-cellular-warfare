@@ -624,8 +624,13 @@ func _build_store() -> void:
 	# Ceiling panels do the lighting; two real lights do the illuminating.
 	for i in 5:
 		_box(Vector3(-21.0 + i * 4.2, 3.18, -17.0), Vector3(2.6, 0.07, 0.6), "lamp", false)
-	_lamp(Vector3(-18.0, 3.0, -17.0), Palette.LAMP_LIGHT, 4.0, 15.0)
-	_lamp(Vector3(-8.0, 3.0, -16.0), Palette.LAMP_LIGHT, 3.6, 14.0)
+	# One lamp where there were three. The Mobile renderer only lets eight omni
+	# lights affect any one object, and after mesh_merge the ground is a single
+	# object spanning the whole lot - so the twelve this level used to place were
+	# really eight arbitrary ones plus four that did nothing. These three sat in
+	# a row along the shop front and are now a single wider lamp covering the
+	# same frontage.
+	_lamp(Vector3(-11.0, 3.2, -16.5), Palette.LAMP_LIGHT, 4.6, 24.0)
 
 	# Frontage signage, all of it well above head height and non-colliding.
 	_box(Vector3(-13.0, 2.95, south - 0.28), Vector3(9.0, 1.15, 0.22), "sign_white", false)
@@ -676,7 +681,7 @@ func _build_dock() -> void:
 	_box(Vector3(4.2, 1.7, -21.0), Vector3(1.6, 1.2, 1.6), "stock")
 	_box(Vector3(0.2, 1.6, -21.6), Vector3(1.4, 1.0, 1.4), "stock")
 	_box(Vector3(4.6, 1.6, -17.0), Vector3(1.2, 1.0, 1.2), "stock")
-	_lamp(Vector3(2.0, 3.0, -17.0), Color(1.0, 0.86, 0.62), 2.6, 10.0)
+	# (third shop-front lamp folded into the wider one above)
 	_box(Vector3(2.0, 3.15, -17.0), Vector3(1.2, 0.1, 0.4), "lamp", false)
 
 
@@ -849,7 +854,9 @@ func _build_summerleaf() -> void:
 		for j in 2:
 			_box(Vector3(15.5 + i * 3.5, 3.24, -18.0 + j * 5.0), Vector3(2.4, 0.08, 0.7),
 				"grow", false)
-	_lamp(Vector3(19.0, 3.0, -15.0), Color(0.78, 0.40, 1.0), 4.4, 17.0)
+	# Summerleaf's purple used to be an omni light. The emissive "grow" material
+	# already carries that colour and costs no light slot, so the light itself
+	# was spending one of eight to tint a corner nobody fights in.
 
 	# Frontage: name board and a leaf, both above head height, neither solid.
 	_box(Vector3(19.0, 2.95, south - 0.28), Vector3(7.6, 1.15, 0.22), "leaf_sign", false)
@@ -965,7 +972,7 @@ func _build_props() -> void:
 	_box(Vector3(8.5, 0.95, 6.0), Vector3(0.9, 1.6, 0.9), "sign_white", false)
 	_box(Vector3(8.5, 0.95, 6.0), Vector3(0.85, 1.55, 0.85), "dark_metal")
 	_box(Vector3(10.5, 0.95, 6.0), Vector3(0.9, 1.6, 0.9), "dark_metal")
-	_lamp(Vector3(9.5, 2.4, 6.0), Color(0.9, 0.95, 1.0), 1.6, 6.0)
+	# (a 1.6-energy, 6m lamp - the weakest in the level - cut for the cap)
 
 	# Dumpster corral, south-west. Three walls, open to the east.
 	_box(Vector3(-23.0, 1.1, 14.0), Vector3(10.0, 2.2, 0.35), "wall_dark")
