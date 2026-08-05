@@ -209,16 +209,21 @@ func set_shift(controller) -> void:
 
 
 func _on_objective(text: String, hint: String) -> void:
-	score_label.text = text
-	feed_label.text = hint
+	if score_label.text != text:
+		score_label.text = text
+	if feed_label.text != hint:
+		feed_label.text = hint
 	queue_redraw()
 
 
 func _on_money(cash: float, earned: float) -> void:
-	if cash > 0.0:
-		hint_label.text = "holding $%.2f change  ·  earned $%.2f" % [cash, earned]
-	else:
-		hint_label.text = "earned $%.2f" % earned
+	# Only touch the label when the text actually changes. Assigning to a Label
+	# re-rasterises any glyph it hasn't drawn before, and this fired on every
+	# state change whether the numbers had moved or not.
+	var line: String = ("holding $%.2f change  ·  earned $%.2f" % [cash, earned]
+		if cash > 0.0 else "earned $%.2f" % earned)
+	if hint_label.text != line:
+		hint_label.text = line
 	hint_label.visible = true
 
 

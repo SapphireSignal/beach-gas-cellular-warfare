@@ -211,13 +211,18 @@ func _forest_ring() -> void:
 ## the level, so a hundred of them still cost one draw call per material.
 func _tree(at: Vector3, height_scale: float, pale: bool) -> void:
 	var h := 7.0 * height_scale
-	_box(at + Vector3(0, h * 0.28, 0), Vector3(0.42, h * 0.56, 0.42), "trunk")
+	# No collision on any of it. There are about a hundred trees and they were
+	# contributing ~200 collision shapes — over a third of this map's total —
+	# for geometry that sits *behind* the invisible walls, where no player can
+	# ever reach it. Every one of those shapes was broadphase work per frame for
+	# nothing.
+	_box(at + Vector3(0, h * 0.28, 0), Vector3(0.42, h * 0.56, 0.42), "trunk", false)
 	var key := "forest_light" if pale else "forest_dark"
 	for i in 3:
 		var f := float(i) / 3.0
 		var w := (3.4 - f * 1.9) * height_scale
 		_box(at + Vector3(0, h * (0.42 + f * 0.26), 0),
-			Vector3(w, h * 0.30, w), key, i == 0)
+			Vector3(w, h * 0.30, w), key, false)
 
 
 # ---------------------------------------------------------------------------
