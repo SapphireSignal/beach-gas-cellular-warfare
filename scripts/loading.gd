@@ -103,12 +103,15 @@ func _ready() -> void:
 	_spinner.position = Vector2(0.0, -14.0)
 	_bar_back.add_child(_spinner)
 
-	modulate.a = 0.0
+	# Opaque from frame one. This used to start transparent and fade in, which
+	# meant the menu was visible through it for the first fifth of a second -
+	# exactly the "why can I see the buttons" Jay reported. A loading screen has
+	# nothing to fade in from.
+	modulate.a = 1.0
 
 
 func _process(delta: float) -> void:
 	_elapsed += delta
-	modulate.a = minf(modulate.a + delta / FADE_TIME, 1.0)
 
 	# Ease toward the target rather than snapping, so a jump from 0.2 to 0.9
 	# reads as progress rather than a glitch.

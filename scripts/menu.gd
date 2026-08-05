@@ -920,7 +920,11 @@ func _swatch(label: String, color: Color, selected: bool, on_press: Callable) ->
 ## colour against near-black reads as deliberate at any size, and it gives every
 ## button an obvious identity without shouting.
 func _style(button: Button, accent: Color) -> void:
-	if button.get_theme_font_size("font_size") <= 0:
+	# Set it unless the caller already chose one. The old guard tested
+	# get_theme_font_size() <= 0, which never fires: that returns the theme's
+	# default (16), not zero, so no menu button ever got the size it was meant
+	# to have. That is why the buttons stayed tiny after the type scale landed.
+	if not button.has_theme_font_size_override("font_size"):
 		button.add_theme_font_size_override("font_size", FONT_BUTTON)
 	button.add_theme_color_override("font_color", Color(0.94, 0.95, 1.0))
 	button.add_theme_color_override("font_hover_color", Color(1, 1, 1))

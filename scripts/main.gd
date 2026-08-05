@@ -96,6 +96,7 @@ func _boot_sequence() -> void:
 			_start_backdrop()
 		return
 
+	menu_layer.hide()
 	_show_loading("BEACH GAS", "warming up")
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -109,6 +110,7 @@ func _boot_sequence() -> void:
 		_set_loading(0.15 + 0.85 * (float(i) / 8.0), "warming up")
 		await get_tree().process_frame
 
+	menu_layer.show()
 	_hide_loading()
 
 

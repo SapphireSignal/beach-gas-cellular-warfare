@@ -8,34 +8,38 @@ extends Node3D
 ## Shots are slow dollies with a fixed look target, cut together with a short
 ## fade to black that menu.gd draws on top.
 
+## Which map the menu films. Its own constant so the shot checker and the
+## backdrop can never disagree about what they are testing.
+const BACKDROP_MAP := "beach_gas_real"
+
 const SHOT_SECONDS := 9.0
 const FADE_SECONDS := 1.1
 
 ## Each shot dollies `from` -> `to` while looking at `look`.
 const SHOTS: Array[Dictionary] = [
-	{   # Wide establishing view across the whole forecourt.
-		"from": Vector3(23.0, 11.0, 21.0), "to": Vector3(13.0, 9.5, 16.0),
-		"look": Vector3(-10.0, 6.5, 0.0), "fov": 60.0,
+	{   # High and wide across the whole clearing, forest on the far side.
+		"from": Vector3(30.0, 13.0, 30.0), "to": Vector3(20.0, 11.5, 22.0),
+		"look": Vector3(-4.0, 2.4, -2.0), "fov": 58.0,
 	},
-	{   # Low, down the lane between the pump islands.
-		"from": Vector3(5.0, 1.7, 4.5) , "to": Vector3(-3.0, 1.8, 4.2),
-		"look": Vector3(-21.0, 1.7, 4.0), "fov": 68.0,
+	{   # Low, down the lane between the two pump islands.
+		"from": Vector3(0.0, 1.7, 16.0), "to": Vector3(0.0, 1.8, 7.0),
+		"look": Vector3(0.0, 2.2, -6.0), "fov": 66.0,
 	},
-	{   # Inside the store, looking out through the glass.
-		"from": Vector3(-14.4, 1.7, -17.1), "to": Vector3(-14.4, 1.7, -13.1),
-		"look": Vector3(-12.0, 1.5, -3.0), "fov": 64.0,
+	{   # Tracking across the front of the store toward Summerleaf.
+		"from": Vector3(-26.0, 2.0, -6.0), "to": Vector3(-18.0, 2.0, -6.0),
+		"look": Vector3(4.0, 2.6, -13.0), "fov": 60.0,
 	},
-	{   # Past the plant tables into Summerleaf.
-		"from": Vector3(19.5, 1.7, -1.5), "to": Vector3(19.2, 1.7, -6.2),
-		"look": Vector3(19.0, 2.2, -20.0), "fov": 62.0,
+	{   # Past the tanks, looking back at the forecourt.
+		"from": Vector3(-31.6, 2.2, 5.4), "to": Vector3(-28.6, 2.4, 11.4),
+		"look": Vector3(6.0, 2.0, -2.0), "fov": 62.0,
 	},
-	{   # Looking up at the pylon sign.
-		"from": Vector3(-19.5, 1.3, 15.5), "to": Vector3(-22.5, 1.7, 18.0),
-		"look": Vector3(-28.0, 7.6, 20.0), "fov": 55.0,
+	{   # Up at the pylon sign from the road side.
+		"from": Vector3(24.0, 1.6, 28.0), "to": Vector3(21.0, 2.2, 26.0),
+		"look": Vector3(20.0, 4.2, 23.0), "fov": 54.0,
 	},
-	{   # Along the parking rows toward the store.
-		"from": Vector3(30.0, 2.4, 21.0), "to": Vector3(24.0, 2.6, 14.0),
-		"look": Vector3(-8.0, 3.0, 2.0), "fov": 60.0,
+	{   # Wide from the east, the whole lot with the forest behind it.
+		"from": Vector3(34.0, 2.6, -6.0), "to": Vector3(28.0, 2.8, 2.0),
+		"look": Vector3(-14.0, 3.0, -12.0), "fov": 60.0,
 	},
 ]
 
@@ -48,9 +52,10 @@ var _elapsed := 0.0
 
 
 func _ready() -> void:
-	# The backdrop always shows Beach Gas: these camera moves are framed for it,
-	# and the menu should look the same whichever map is selected in the lobby.
-	var world = load(Maps.scene_path(Maps.DEFAULT_ID)).instantiate()
+	# The backdrop always shows the real station, whichever map is selected in
+	# the lobby — it's the one built from photographs, and a menu that opens on
+	# the actual place says more than one that opens on the fictional one.
+	var world = load(Maps.scene_path(BACKDROP_MAP)).instantiate()
 	world.decorative = true
 	add_child(world)
 

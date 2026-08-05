@@ -5,13 +5,13 @@ extends Node
 ## moment to pick up its phone — so it's something to learn the controls
 ## against, not something to lose to.
 
-const SIGHT_RANGE := 42.0
+const SIGHT_RANGE := 30.0
 const PREFERRED_RANGE := 11.0
 const RANGE_SLACK := 4.0
-const AIM_SPEED := 5.5
-const AIM_WOBBLE := 0.075          ## radians of permanent hand-shake
+const AIM_SPEED := 3.4
+const AIM_WOBBLE := 0.145          ## radians of permanent hand-shake
 const WOBBLE_INTERVAL := 0.45
-const REACTION_DELAY := 0.3        ## must see you this long before firing
+const REACTION_DELAY := 0.7        ## must see you this long before firing
 const LOSE_INTEREST := 4.0         ## keeps hunting your last known spot
 const STUCK_SPEED := 0.6
 const STUCK_TIME := 0.7

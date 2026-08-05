@@ -50,10 +50,34 @@ func spawn_points() -> Array[Vector3]:
 	return REAL_SPAWNS
 
 
-## No passing traffic. The real road is a quiet rural one and cars driving
-## through a firefight every few seconds would read as a different place.
 func wants_traffic() -> bool:
-	return false
+	return true
+
+
+## Cars on the real road, and two of them pull in to the pumps.
+##
+## Index 3 is always where a car stops — that is traffic.gd's contract. The two
+## drive-through routes put their stop out past the tree line so the pause
+## happens off the lot rather than in the middle of the road.
+func traffic_routes() -> Array:
+	return [
+		# Pulls in from the east, stops at the east island, leaves west.
+		[Vector3(48, 0, 31), Vector3(18, 0, 30), Vector3(14, 0, 8),
+			Vector3(14, 0, 0), Vector3(14, 0, -8), Vector3(-26, 0, -10),
+			Vector3(-48, 0, 24)],
+		# Pulls in from the west, stops at the west island, leaves east.
+		[Vector3(-48, 0, 31), Vector3(-18, 0, 30), Vector3(-14, 0, 8),
+			Vector3(-14, 0, 0), Vector3(-14, 0, -8), Vector3(26, 0, -10),
+			Vector3(48, 0, 24)],
+		# Straight through, west to east. Stop sits at x = -44, out in the trees.
+		[Vector3(-54, 0, 31.5), Vector3(-50, 0, 31.5), Vector3(-47, 0, 31.5),
+			Vector3(-44, 0, 31.5), Vector3(-10, 0, 31.5), Vector3(20, 0, 31.5),
+			Vector3(54, 0, 31.5)],
+		# Straight through, east to west, on the other side of the line.
+		[Vector3(54, 0, 28.5), Vector3(50, 0, 28.5), Vector3(47, 0, 28.5),
+			Vector3(44, 0, 28.5), Vector3(10, 0, 28.5), Vector3(-20, 0, 28.5),
+			Vector3(-54, 0, 28.5)],
+	]
 
 
 ## Daylight on white gravel is its own light source. The night map lifts ambient
@@ -114,7 +138,14 @@ func _daylight() -> void:
 
 
 func _gravel_lot() -> void:
-	_flat(Vector3(0, 0, 0), Vector2(SITE_X * 2.0, SITE_Z * 2.0), "gravel")
+	# A solid slab, not a _flat(). _flat builds a visual plane with no collision;
+	# the floor every other map stands on comes from _build_ground(), which this
+	# map's _build_level() override never calls. Without this there is literally
+	# nothing under the player and you fall out of the world.
+	#
+	# Oversized past the tree line so nobody can reach an edge of it.
+	_box(Vector3(0, -0.5, 0),
+		Vector3(SITE_X * 2.4, 1.0, (SITE_Z + ROAD_Z) * 1.4), "gravel").name = "Ground"
 
 
 ## The road runs past the front, raised barely off the gravel. Two lanes with a
@@ -202,61 +233,158 @@ func _store() -> void:
 	var w := 13.0
 	var d := 9.0
 	var wall_h := 4.0
+	var face := at.z + d * 0.5
+	var door_x := at.x + 3.6
+	var door_w := 2.2
 
-	_box(at + Vector3(0, wall_h * 0.5, 0), Vector3(w, wall_h, d), "store_white")
+	# Walk-in, not a solid block. Four walls with a gap for the door, so the
+	# inside is a real room you can be fought in — the counter and the cooler
+	# aisle are the only cover on this half of the map.
+	_box(Vector3(at.x, 0.05, at.z), Vector3(w, 0.1, d), "concrete")
+	_box(Vector3(at.x, wall_h * 0.5, at.z - d * 0.5), Vector3(w, wall_h, 0.3),
+		"store_white")                                            # back
+	_box(Vector3(at.x - w * 0.5, wall_h * 0.5, at.z), Vector3(0.3, wall_h, d),
+		"store_white")                                            # left
+	_box(Vector3(at.x + w * 0.5, wall_h * 0.5, at.z), Vector3(0.3, wall_h, d),
+		"store_white")                                            # right
 
-	# Gable: two slabs leaned against each other. The real roof is a shallow
-	# pitch with a deep overhang on the front.
+	# Front, in two pieces either side of the doorway.
+	var left_w: float = (door_x - door_w * 0.5) - (at.x - w * 0.5)
+	_box(Vector3(at.x - w * 0.5 + left_w * 0.5, wall_h * 0.5, face),
+		Vector3(left_w, wall_h, 0.3), "store_white")
+	var right_w: float = (at.x + w * 0.5) - (door_x + door_w * 0.5)
+	_box(Vector3(at.x + w * 0.5 - right_w * 0.5, wall_h * 0.5, face),
+		Vector3(right_w, wall_h, 0.3), "store_white")
+	# Lintel over the door, so the gap reads as a doorway rather than a hole.
+	_box(Vector3(door_x, wall_h - 0.4, face), Vector3(door_w, 0.8, 0.3),
+		"store_white")
+
+	_store_interior(at, w, d)
+
+	# Gable: two slabs leaned together, with the deep front overhang.
 	for side in [-1.0, 1.0]:
-		var slab := _box(at + Vector3(0, wall_h + 1.05, side * (d * 0.25 + 0.15)),
+		var slab := _box(Vector3(at.x, wall_h + 1.05, at.z + side * (d * 0.25 + 0.15)),
 			Vector3(w + 0.9, 0.20, d * 0.62), "roof_black", false)
 		slab.rotation_degrees = Vector3(side * -22.0, 0, 0)
-	_box(at + Vector3(0, wall_h + 1.55, 0), Vector3(w + 0.5, 0.22, 0.6),
+	_box(Vector3(at.x, wall_h + 1.55, at.z), Vector3(w + 0.5, 0.22, 0.6),
 		"roof_black", false)
 
-	# Front face, looking south toward the pumps.
-	var face := at.z + d * 0.5 + 0.06
-	_beach_gas_disc(Vector3(at.x - 2.2, 2.6, face), 1.9)
+	var f := face + 0.2
+	_beach_gas_disc(Vector3(at.x - 2.2, 2.6, f), 1.9)
+	_box(Vector3(at.x - 5.4, 2.4, f), Vector3(2.6, 1.5, 0.10), "glass", false)
+	_box(Vector3(at.x - 5.4, 3.3, f + 0.35), Vector3(2.8, 0.12, 0.9), "cedar", false)
 
-	# Door: blue-grey, with a window in the top half.
-	_box(Vector3(at.x + 3.6, 1.35, face), Vector3(1.5, 2.7, 0.12), "trim")
-	_box(Vector3(at.x + 3.6, 2.15, face + 0.05), Vector3(1.1, 0.9, 0.06), "glass")
-	# Left window with its wooden awning.
-	_box(Vector3(at.x - 5.4, 2.4, face), Vector3(2.6, 1.5, 0.10), "glass")
-	_box(Vector3(at.x - 5.4, 3.3, face + 0.35), Vector3(2.8, 0.12, 0.9), "cedar", false)
-
-	# Two gooseneck barn lamps either side of the sign, and the string lights
-	# along the eave. Emissive, not omni lights — the mobile renderer only
-	# allows eight of those and this map spends them on the lot.
+	# Gooseneck lamps and string lights. Emissive rather than omni — the eight
+	# omni slots are spent on the lot poles.
 	for x: float in [at.x - 4.6, at.x - 0.2]:
-		_box(Vector3(x, 3.5, face + 0.2), Vector3(0.14, 0.5, 0.14), "dark_metal", false)
-		_box(Vector3(x, 3.25, face + 0.45), Vector3(0.5, 0.22, 0.5), "dark_metal", false)
-		_box(Vector3(x, 3.12, face + 0.45), Vector3(0.34, 0.06, 0.34), "lamp", false)
+		_box(Vector3(x, 3.5, f + 0.2), Vector3(0.14, 0.5, 0.14), "dark_metal", false)
+		_box(Vector3(x, 3.25, f + 0.45), Vector3(0.5, 0.22, 0.5), "dark_metal", false)
+		_box(Vector3(x, 3.12, f + 0.45), Vector3(0.34, 0.06, 0.34), "lamp", false)
 	for i in 11:
 		var t := float(i) / 10.0
 		var sag := sin(t * PI) * 0.35
-		_box(Vector3(at.x - w * 0.45 + t * w * 0.9, 4.6 - sag, face + 0.5),
+		_box(Vector3(at.x - w * 0.45 + t * w * 0.9, 4.6 - sag, f + 0.5),
 			Vector3(0.10, 0.16, 0.10), "lamp", false)
 
-	# The porch: two white Adirondack chairs with a log stump between them, and
-	# two blue ones off to the side. They are in every photo of the place.
-	_chair(Vector3(at.x - 3.4, 0, face + 1.9), 0.0, "cream")
-	_chair(Vector3(at.x - 0.9, 0, face + 1.9), 0.0, "cream")
-	_box(Vector3(at.x - 2.15, 0.28, face + 1.9), Vector3(0.5, 0.56, 0.5), "trunk")
-	_chair(Vector3(at.x - 8.2, 0, face + 2.4), 22.0, "chair_blue")
-	_chair(Vector3(at.x - 6.4, 0, face + 2.6), 12.0, "chair_blue")
-
-	# Potted plant, boulders and driftwood posts.
-	_box(Vector3(at.x - 5.0, 0.35, face + 1.6), Vector3(0.7, 0.7, 0.7), "pot")
-	_plant(Vector3(at.x - 5.0, 0.7, face + 1.6), 0.8)
-	_boulder(Vector3(at.x - 7.5, 0, face + 4.2), 1.5)
-	_boulder(Vector3(at.x + 5.5, 0, face + 3.4), 1.1)
+	# The porch, straight off the photographs.
+	_chair(Vector3(at.x - 3.4, 0, f + 1.9), 0.0, "cream")
+	_chair(Vector3(at.x - 0.9, 0, f + 1.9), 0.0, "cream")
+	_box(Vector3(at.x - 2.15, 0.28, f + 1.9), Vector3(0.5, 0.56, 0.5), "trunk")
+	_chair(Vector3(at.x - 8.2, 0, f + 2.4), 22.0, "chair_blue")
+	_chair(Vector3(at.x - 6.4, 0, f + 2.6), 12.0, "chair_blue")
+	_box(Vector3(at.x - 5.0, 0.35, f + 1.6), Vector3(0.7, 0.7, 0.7), "pot")
+	_plant(Vector3(at.x - 5.0, 0.7, f + 1.6), 0.8)
+	_boulder(Vector3(at.x - 7.5, 0, f + 4.2), 1.5)
+	_boulder(Vector3(at.x + 5.5, 0, f + 3.4), 1.1)
 	for x: float in [at.x - 9.2, at.x - 1.6]:
-		_box(Vector3(x, 0.7, face + 0.9), Vector3(0.34, 1.4, 0.34), "trunk")
+		_box(Vector3(x, 0.7, f + 0.9), Vector3(0.34, 1.4, 0.34), "trunk")
+	_box(Vector3(at.x + 6.2, 1.0, f + 0.5), Vector3(1.0, 2.0, 0.8), "sign")
+	_box(Vector3(at.x + 5.0, 0.55, f + 0.9), Vector3(0.8, 1.1, 0.8), "dark_metal")
 
-	# Pepsi machine and a barrel bin by the door.
-	_box(Vector3(at.x + 6.2, 1.0, face + 0.5), Vector3(1.0, 2.0, 0.8), "sign")
-	_box(Vector3(at.x + 5.0, 0.55, face + 0.9), Vector3(0.8, 1.1, 0.8), "dark_metal")
+	_propane_and_firewood(Vector3(at.x - w * 0.5 - 4.5, 0.0, at.z + 1.0))
+
+
+## Inside the shop. Walking in: the slushie and coffee table is on your left, a
+## lit drinks cooler beside it, the till is ahead of you a little way back, and
+## the cigarette wall is behind the till.
+func _store_interior(at: Vector3, w: float, d: float) -> void:
+	var left := at.x - w * 0.5 + 1.2
+	var back := at.z - d * 0.5 + 0.9
+
+	# Slushie machine and coffee, on a counter down the left wall.
+	_box(Vector3(left + 0.4, 0.5, at.z + 1.6), Vector3(1.6, 1.0, 3.4), "shelf")
+	for i in 2:
+		# Slushie barrels: lit, so they read from the doorway.
+		_box(Vector3(left + 0.4, 1.35, at.z + 0.6 + i * 0.9),
+			Vector3(0.62, 0.7, 0.62), "cooler", false)
+	_box(Vector3(left + 0.4, 1.25, at.z + 2.9), Vector3(0.9, 0.5, 0.7),
+		"dark_metal", false)                                   # coffee urns
+	_box(Vector3(left + 0.4, 1.6, at.z + 2.9), Vector3(0.7, 0.2, 0.5),
+		"metal", false)
+
+	# Drinks cooler beside it — glass front, lit from inside.
+	_box(Vector3(left + 0.5, 1.1, at.z - 1.8), Vector3(1.7, 2.2, 2.6), "dark_metal")
+	_box(Vector3(left + 1.4, 1.1, at.z - 1.8), Vector3(0.08, 1.9, 2.3),
+		"cooler", false)
+
+	# The till, ahead and a little back as you come through the door.
+	_box(Vector3(at.x + 2.2, 0.55, back + 2.6), Vector3(3.4, 1.1, 1.0), "shelf")
+	_box(Vector3(at.x + 2.2, 1.24, back + 2.6), Vector3(0.7, 0.28, 0.5),
+		"dark_metal", false)                                   # register
+	_box(Vector3(at.x + 3.4, 1.22, back + 2.6), Vector3(0.4, 0.24, 0.3),
+		"sign_white", false)                                   # lit display
+
+	# Cigarette wall behind the till: a grid of packs against the back wall.
+	_box(Vector3(at.x + 2.2, 1.9, back + 0.15), Vector3(4.6, 2.6, 0.3), "dark_metal")
+	for row in 5:
+		for col in 9:
+			_box(Vector3(at.x + 2.2 - 2.0 + col * 0.5, 1.05 + row * 0.44,
+				back + 0.34), Vector3(0.4, 0.36, 0.12), "stock", false)
+
+	# Candy rack on the right-hand wall as you walk in — tiered, so the rows
+	# step forward toward you the way a real one does.
+	var right := at.x + w * 0.5 - 0.9
+	_box(Vector3(right, 0.75, at.z + 2.4), Vector3(0.5, 1.5, 2.6), "shelf")
+	for row in 4:
+		_box(Vector3(right - 0.12 - row * 0.05, 0.5 + row * 0.34, at.z + 2.4),
+			Vector3(0.34, 0.1, 2.4), "shelf", false)
+		for i in 5:
+			_box(Vector3(right - 0.14 - row * 0.05, 0.62 + row * 0.34,
+				at.z + 1.4 + i * 0.5), Vector3(0.26, 0.22, 0.36),
+				"stock", false)
+
+	# A run of shelving down the middle, so the room has cover in it.
+	_shelf_run(Vector3(at.x + 1.0, 0.0, at.z + 2.6), 3.4)
+
+
+## Propane cages and stacked firewood, left of the store. Both are out front in
+## every photo, and they double as the only hard cover on that approach.
+func _propane_and_firewood(at: Vector3) -> void:
+	# Two mesh cages of cylinders.
+	for cage in 2:
+		var cz: float = at.z + cage * 2.6
+		_box(Vector3(at.x, 0.06, cz), Vector3(2.2, 0.12, 2.2), "concrete")
+		# Frame: four uprights and a top rail, left open so the bottles show.
+		for ox: float in [-1.0, 1.0]:
+			for oz: float in [-1.0, 1.0]:
+				_box(Vector3(at.x + ox, 0.9, cz + oz), Vector3(0.1, 1.8, 0.1), "metal")
+		_box(Vector3(at.x, 1.78, cz), Vector3(2.2, 0.1, 2.2), "metal")
+		for bx in 2:
+			for bz in 2:
+				_box(Vector3(at.x - 0.45 + bx * 0.9, 0.55, cz - 0.45 + bz * 0.9),
+					Vector3(0.42, 0.9, 0.42), "tank_white")
+		# Mesh, faked with thin bars rather than a transparent texture.
+		for i in 5:
+			_box(Vector3(at.x, 0.9, cz - 1.0 + i * 0.5), Vector3(2.2, 1.8, 0.04),
+				"metal", false)
+
+	# Firewood: bundles stacked on a pallet.
+	var wz := at.z + 6.0
+	_box(Vector3(at.x, 0.08, wz), Vector3(2.6, 0.16, 1.6), "cedar")
+	for row in 3:
+		for col in 4:
+			_box(Vector3(at.x - 0.95 + col * 0.63, 0.32 + row * 0.34, wz),
+				Vector3(0.55, 0.32, 1.3), "trunk")
 
 
 ## The round wall sign: orange-red ring, teal disc, cream lettering. Built as
@@ -331,6 +459,21 @@ func _summerleaf() -> void:
 			Vector3(1.5, 2.0, 0.14), "cedar")
 	_picnic_table(Vector3(at.x + 6.5, 0, face + 2.2), -14.0)
 
+	# Floaties on a rack beside the bench — they're for sale and they're the
+	# brightest thing on this side of the lot, which makes them a landmark.
+	var rack := Vector3(at.x + 9.6, 0.0, face + 1.4)
+	for post: float in [-0.9, 0.9]:
+		_box(rack + Vector3(post, 1.0, 0), Vector3(0.09, 2.0, 0.09), "metal")
+	_box(rack + Vector3(0, 2.0, 0), Vector3(1.9, 0.09, 0.09), "metal", false)
+	var rings: Array[String] = ["sign", "sign_cyan", "leaf_sign", "grow"]
+	for i in 4:
+		var ring := rack + Vector3(-0.66 + i * 0.44, 1.35, 0.0)
+		# A ring read as a flat torus: four bars round a gap.
+		for side in 4:
+			var a := TAU * float(side) / 4.0
+			_box(ring + Vector3(cos(a) * 0.26, sin(a) * 0.26, 0.0),
+				Vector3(0.34, 0.14, 0.14), rings[i], false)
+
 
 func _picnic_table(at: Vector3, yaw: float) -> void:
 	var root := Node3D.new()
@@ -366,6 +509,21 @@ func _pump_islands() -> void:
 					"tank_white")
 		# An orange cone by each island. Every photo has them.
 		_cone(Vector3(island + 4.0, 0, 2.2))
+
+		# Black bin with the squeegee bucket under it — one per island. These
+		# are props now and interaction points later: washing a windscreen is
+		# part of the shift mode, and the wiper has to live somewhere you can
+		# walk to.
+		var bin := Vector3(island - 4.2, 0.0, 1.9)
+		_box(bin + Vector3(0, 0.55, 0), Vector3(0.86, 1.1, 0.86), "dark_metal")
+		_box(bin + Vector3(0, 1.14, 0), Vector3(0.94, 0.08, 0.94),
+			"dark_metal", false)
+		# Squeegee bucket and handle, hanging off the side.
+		_box(bin + Vector3(0.62, 0.34, 0), Vector3(0.36, 0.5, 0.36), "metal")
+		_box(bin + Vector3(0.62, 0.95, 0), Vector3(0.06, 0.9, 0.06),
+			"trunk", false)
+		_box(bin + Vector3(0.62, 1.42, 0), Vector3(0.42, 0.10, 0.10),
+			"rubber", false)
 	_cone(Vector3(-2.0, 0, 4.6))
 
 
@@ -411,7 +569,7 @@ func _lot_poles() -> void:
 ## The wooden pylon by the road: the oval sign, the red LED price digits, and
 ## the Summerleaf board underneath it.
 func _pylon_sign() -> void:
-	var at := Vector3(20.0, 0.0, 19.0)
+	var at := Vector3(20.0, 0.0, 23.0)
 	for x: float in [-2.4, 2.4]:
 		_box(at + Vector3(x, 2.6, 0), Vector3(0.34, 5.2, 0.34), "cedar")
 	_box(at + Vector3(0, 5.1, 0), Vector3(5.4, 0.3, 0.34), "cedar")
@@ -425,7 +583,7 @@ func _pylon_sign() -> void:
 
 	# LED price board. Emissive, so it glows without a light.
 	_box(at + Vector3(0, 2.65, 0.2), Vector3(3.4, 0.9, 0.16), "dark_metal", false)
-	_sign_text("149.9", at + Vector3(0, 2.65, 0.30), 0.62, Palette.PRICE_RED, 0.0)
+	_sign_text("1.539", at + Vector3(0, 2.65, 0.30), 0.62, Palette.PRICE_RED, 0.0)
 
 	# Summerleaf's board below.
 	_box(at + Vector3(0, 1.3, 0.2), Vector3(3.6, 1.2, 0.14), "cream", false)

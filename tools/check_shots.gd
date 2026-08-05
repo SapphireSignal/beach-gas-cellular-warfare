@@ -29,7 +29,7 @@ const CLEARANCE := 0.6
 
 
 func _initialize() -> void:
-	var world = load(Maps.scene_path(Maps.DEFAULT_ID)).instantiate()
+	var world = load(Maps.scene_path(BACKDROP.BACKDROP_MAP)).instantiate()
 	world.decorative = false        # the whole point: we want the collision
 	root.add_child(world)
 
@@ -42,7 +42,7 @@ func _initialize() -> void:
 	var shots: Array = BACKDROP.SHOTS
 	var bad := 0
 
-	print("checking %d backdrop shots against Beach Gas geometry" % shots.size())
+	print("checking %d backdrop shots against the backdrop map" % shots.size())
 	print("")
 
 	for i in shots.size():

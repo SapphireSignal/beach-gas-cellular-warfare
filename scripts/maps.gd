@@ -10,8 +10,8 @@ class_name Maps
 const LIST: Array[Dictionary] = [
 	{
 		"id": "beach_gas",
-		"name": "Beach Gas",
-		"blurb": "24-hour forecourt. Store, canopy, and nowhere good to hide.",
+		"name": "Night Forecourt",
+		"blurb": "24-hour forecourt under the canopy. Lit, cluttered, close quarters.",
 		"scene": "res://scenes/beach_gas.tscn",
 		"available": true,
 	},
@@ -24,8 +24,8 @@ const LIST: Array[Dictionary] = [
 	},
 	{
 		"id": "beach_gas_real",
-		"name": "Beach Gas (Real)",
-		"blurb": "The actual station. Gravel, forest, four pumps and nowhere to hide.",
+		"name": "Beach Gas",
+		"blurb": "The real station. Gravel, forest, four pumps and nowhere to hide.",
 		"scene": "res://scenes/beach_gas_real.tscn",
 		"available": true,
 	},

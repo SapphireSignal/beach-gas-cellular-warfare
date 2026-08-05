@@ -32,6 +32,16 @@ const ROUTES: Array[Array] = [
 ]
 const STOP_INDEX := 3
 
+
+## Routes come from the map when it offers its own, so a level with a different
+## road isn't stuck driving cars through the fictional forecourt's lanes.
+func _routes() -> Array:
+	if world != null and world.has_method("traffic_routes"):
+		var custom: Array = world.traffic_routes()
+		if not custom.is_empty():
+			return custom
+	return ROUTES
+
 const COLOURS: Array[Color] = [
 	Color(0.78, 0.78, 0.80), Color(0.14, 0.15, 0.18), Color(0.65, 0.18, 0.16),
 	Color(0.18, 0.32, 0.62), Color(0.32, 0.40, 0.34), Color(0.72, 0.60, 0.24),
@@ -58,7 +68,7 @@ func _process(delta: float) -> void:
 		return
 	_next_spawn = _clock + randf_range(GAP_MIN, GAP_MAX)
 
-	var route := randi() % ROUTES.size()
+	var route := randi() % _routes().size()
 	var colour := randi() % COLOURS.size()
 	var wait := randf_range(WAIT_MIN, WAIT_MAX)
 	if local_only:
@@ -79,7 +89,7 @@ func _may_spawn() -> bool:
 func _arrive(route_index: int, colour_index: int, wait_seconds: float) -> void:
 	if world == null or not world.has_method("build_car"):
 		return
-	var path: Array = ROUTES[route_index % ROUTES.size()]
+	var path: Array = _routes()[route_index % _routes().size()]
 	var car := _car_of_colour(colour_index % COLOURS.size())
 	if car == null:
 		return

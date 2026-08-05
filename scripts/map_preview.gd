@@ -31,6 +31,7 @@ func _draw() -> void:
 	match map_id:
 		"beach_gas": _draw_beach_gas(accent)
 		"level_three": _draw_level_three(accent)
+		"beach_gas_real": _draw_beach_gas_real(accent)
 		_: _draw_locked(accent)
 
 	draw_rect(Rect2(Vector2.ZERO, size), Color(accent.r, accent.g, accent.b, 0.35), false, 2.0)
@@ -105,6 +106,55 @@ func _draw_beach_gas(accent: Color) -> void:
 
 	var font := ThemeDB.fallback_font
 	draw_string(font, Vector2(10, size.y - 10), "BEACH GAS",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(accent.r, accent.g, accent.b, 0.7))
+
+
+# ---------------------------------------------------------------------------
+
+## The real station is 91 x 112 including the road, much bigger and much emptier
+## than either of the others — which is the thing the preview has to convey. A
+## player picking it should see at a glance that there is nothing in the middle
+## to hide behind.
+func _draw_beach_gas_real(accent: Color) -> void:
+	_extents = Vector2(91.0, 112.0)
+	var building := Color(accent.r, accent.g, accent.b, 0.30)
+	var outline := Color(accent.r, accent.g, accent.b, 0.75)
+	var prop := Color(accent.r, accent.g, accent.b, 0.45)
+	var trees := Color(accent.r, accent.g, accent.b, 0.16)
+
+	# Forest on three sides, then the gravel clearing inside it.
+	_rect(-45.5, -34, 91, 76, trees, true)
+	_rect(-38, -26, 76, 52, Color(accent.r, accent.g, accent.b, 0.07), true)
+	_rect(-38, -26, 76, 52, Color(accent.r, accent.g, accent.b, 0.30), false)
+
+	# The road across the front.
+	_rect(-42, 25.5, 84, 9, Color(accent.r, accent.g, accent.b, 0.20), true)
+	_rect(-42, 25.5, 84, 9, Color(accent.r, accent.g, accent.b, 0.40), false)
+
+	# Store and Summerleaf, side by side along the north edge.
+	_rect(-21.5, -21.5, 13, 9, building, true)
+	_rect(-21.5, -21.5, 13, 9, outline, false)
+	_rect(-3, -21.5, 10, 8, Color(accent.r, accent.g, accent.b, 0.24), true)
+	_rect(-3, -21.5, 10, 8, outline, false)
+
+	# Two pump islands, four pumps.
+	for island: float in [-9.0, 9.0]:
+		_rect(island - 3.5, -1.7, 7, 3.4, prop, true)
+		_rect(island - 3.5, -1.7, 7, 3.4, outline, false)
+
+	# The two horizontal tanks on the west side.
+	for i in 2:
+		_rect(-33.5, -12.5 + i * 5.5, 9, 3, prop, true)
+
+	# Lot poles, and the pylon by the road — the one landmark you can see from
+	# anywhere, same as the other map's.
+	for at in [[-22.0, 4.0], [-2.0, -6.0], [18.0, 4.0], [26.0, -12.0]]:
+		draw_circle(_to_screen(at[0], at[1]), 2.0,
+			Color(accent.r, accent.g, accent.b, 0.55))
+	draw_circle(_to_screen(20.0, 19.0), 4.0, Color(1.0, 0.35, 0.4, 0.9))
+
+	var font := ThemeDB.fallback_font
+	draw_string(font, Vector2(10, size.y - 10), "BEACH GAS  ·  REAL",
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(accent.r, accent.g, accent.b, 0.7))
 
 
