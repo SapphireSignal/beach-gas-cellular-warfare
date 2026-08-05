@@ -211,6 +211,7 @@ func set_shift(controller) -> void:
 func _on_objective(text: String, hint: String) -> void:
 	score_label.text = text
 	feed_label.text = hint
+	queue_redraw()
 
 
 func _on_money(cash: float, earned: float) -> void:
@@ -332,6 +333,7 @@ func _drive_player() -> void:
 		zap_btn.dim = verb == ""
 		if _interact_held:
 			shift.interact(true, get_process_delta_time())
+			queue_redraw()
 		# Deliberately NOT returning. This used to `return` here, which skipped
 		# the stick handling below and left the player rooted to the spot for
 		# the entire shift. Only the auto-fire branch should be skipped — a
@@ -764,6 +766,31 @@ func warm_up() -> void:
 	result_label.text = result_was
 
 
+## The pump gauge. Drawn in _draw rather than built from Control nodes so it
+## costs nothing at all when no shift is running, and so it can sit exactly
+## under the objective banner without another layout to keep in sync.
+func _draw_fill_gauge() -> void:
+	if shift == null:
+		return
+	var ratio: float = shift.fill_ratio()
+	if ratio <= 0.0 or ratio >= 1.0:
+		return
+
+	var w := 420.0
+	var h := 22.0
+	var at := Vector2((size.x - w) * 0.5, 96.0)
+
+	draw_rect(Rect2(at, Vector2(w, h)), Color(0, 0, 0, 0.55))
+	draw_rect(Rect2(at, Vector2(w * ratio, h)), Palette.TRACK)
+	draw_rect(Rect2(at, Vector2(w, h)), Color(1, 1, 1, 0.25), false, 2.0)
+
+	var font := ThemeDB.fallback_font
+	var label := "%d%%" % int(ratio * 100.0)
+	var tw := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
+	draw_string(font, at + Vector2((w - tw) * 0.5, h - 4.0), label,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 1, 1, 0.95))
+
+
 func _say(text: String, seconds: float) -> void:
 	status_label.text = text
 	_status_timer = seconds
@@ -789,6 +816,7 @@ func _on_reconnecting(active: bool) -> void:
 # ---------------------------------------------------------------------------
 
 func _draw() -> void:
+	_draw_fill_gauge()
 	_draw_bars()
 	_draw_perf()
 	_draw_crosshair()

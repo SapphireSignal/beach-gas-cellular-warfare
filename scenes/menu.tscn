@@ -568,7 +568,7 @@ visible = false
 anchor_left = 0.5
 anchor_right = 0.5
 offset_left = -196.0
-offset_top = 96.0
+offset_top = 84
 offset_right = 196.0
 offset_bottom = 560.0
 grow_horizontal = 2
@@ -632,7 +632,7 @@ visible = false
 anchor_left = 0.5
 anchor_right = 0.5
 offset_left = -266.0
-offset_top = 110.0
+offset_top = 84
 offset_right = 266.0
 offset_bottom = 612.0
 grow_horizontal = 2
@@ -664,7 +664,7 @@ theme_override_font_sizes/font_size = 14
 text = "IN THE LOBBY"
 
 [node name="PlayerList" type="VBoxContainer" parent="LobbyPanel/Columns/LeftCol"]
-custom_minimum_size = Vector2(0, 190)
+custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 theme_override_constants/separation = 6
 
@@ -681,7 +681,7 @@ theme_override_font_sizes/font_size = 14
 text = "MAP"
 
 [node name="MapPreview" type="Control" parent="LobbyPanel/Columns/RightCol"]
-custom_minimum_size = Vector2(0, 132)
+custom_minimum_size = Vector2(0, 104)
 layout_mode = 2
 mouse_filter = 2
 script = ExtResource("2_preview")
@@ -701,12 +701,12 @@ theme_override_constants/v_separation = 6
 columns = 2
 
 [node name="StartBtn" type="Button" parent="LobbyPanel"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
 text = "START MATCH"
 
 [node name="LeaveBtn" type="Button" parent="LobbyPanel"]
-custom_minimum_size = Vector2(0, 54)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "LEAVE"
 

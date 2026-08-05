@@ -32,11 +32,11 @@ const PUMP_SPOTS: Array[Vector3] = [
 ## How close you have to be to act on something.
 const REACH := 2.6
 ## Seconds of holding the button to fill a tank.
-const FILL_SECONDS := 4.5
+const FILL_SECONDS := 9.0
 
 const PRICE_PER_LITRE := 1.539
 
-enum State { CLOCK_IN, WAITING, DRIVING_IN, PUMPING, TAKE_PAYMENT, GET_CHANGE, RETURN_CHANGE }
+enum State { CLOCK_IN, WAITING, DRIVING_IN, PUMPING, TAKE_PAYMENT, GET_CHANGE, RETURN_CHANGE, DRIVING_OUT }
 
 signal objective_changed(text: String, hint: String)
 signal money_changed(cash_on_hand: float, earned: float)
@@ -95,6 +95,8 @@ func _process(delta: float) -> void:
 				_send_a_customer()
 		State.DRIVING_IN:
 			_drive_customer(delta)
+		State.DRIVING_OUT:
+			_drive_customer_out(delta)
 		_:
 			pass
 	_update_marker()
@@ -124,6 +126,8 @@ func _set_state(next: int) -> void:
 			objective_changed.emit("GET THE CHANGE", "Register inside the store")
 		State.RETURN_CHANGE:
 			objective_changed.emit("RETURN THE CHANGE", "Back to the car")
+		State.DRIVING_OUT:
+			objective_changed.emit("THANKS", "They're on their way")
 	money_changed.emit(_held_cash, _earned)
 
 
@@ -148,7 +152,7 @@ func target_position() -> Vector3:
 
 
 func has_target() -> bool:
-	return _state != State.WAITING
+	return _state != State.WAITING and _state != State.DRIVING_OUT
 
 
 func in_reach() -> bool:
@@ -228,8 +232,7 @@ func interact_pressed() -> void:
 			_earned += _owed
 			_held_cash = 0.0
 			Sfx.play("ping", -8.0)
-			_drive_customer_away()
-			_set_state(State.WAITING)
+			_start_driving_out()
 		_:
 			pass
 
@@ -266,10 +269,29 @@ func _drive_customer(delta: float) -> void:
 		_set_state(State.PUMPING)
 
 
-func _drive_customer_away() -> void:
-	if _customer != null and is_instance_valid(_customer):
+## They pull out and drive off rather than vanishing on the spot.
+func _start_driving_out() -> void:
+	if _customer == null or not is_instance_valid(_customer):
+		_set_state(State.WAITING)
+		return
+	_drive_from = _customer.global_position
+	_drive_t = 0.0
+	_set_state(State.DRIVING_OUT)
+
+
+func _drive_customer_out(delta: float) -> void:
+	if _customer == null or not is_instance_valid(_customer):
+		_set_state(State.WAITING)
+		return
+	_drive_t = minf(1.0, _drive_t + delta * 0.30)
+	var eased := _drive_t * _drive_t * (3.0 - 2.0 * _drive_t)
+	# Out the way they came in, onto the road and off the map.
+	var exit_point := Vector3(_drive_from.x * 2.4, 0.0, 34.0)
+	_customer.global_position = _drive_from.lerp(exit_point, eased)
+	if _drive_t >= 1.0:
 		_customer.queue_free()
-	_customer = null
+		_customer = null
+		_set_state(State.WAITING)
 
 
 # ---------------------------------------------------------------------------
@@ -293,10 +315,13 @@ func _build_marker() -> Node3D:
 
 	var beam := MeshInstance3D.new()
 	var mesh := BoxMesh.new()
-	mesh.size = Vector3(0.5, 7.0, 0.5)
+	# Slimmer and shorter than it was. Jay measured 60fps dropping to 40 both
+	# times he was close to this thing, and a wide always-on-top transparent
+	# column is exactly the overdraw that does that on a phone.
+	mesh.size = Vector3(0.22, 4.0, 0.22)
 	beam.mesh = mesh
 	beam.material_override = mat
-	beam.position = Vector3(0, 3.5, 0)
+	beam.position = Vector3(0, 2.0, 0)
 	root.add_child(beam)
 	return root
 
@@ -304,6 +329,20 @@ func _build_marker() -> Node3D:
 func _update_marker() -> void:
 	if _marker == null:
 		return
-	_marker.visible = has_target()
-	if _marker.visible:
-		_marker.global_position = target_position()
+	if not has_target() or player == null:
+		_marker.visible = false
+		return
+
+	var to := target_position()
+	# Fade it out as you approach and switch it off entirely once you're there.
+	# You don't need a signpost while standing on the thing it points at, and
+	# not drawing it is what actually buys the frames back — at arm's length it
+	# was covering most of the screen.
+	var d: float = player.global_position.distance_to(to)
+	if d <= REACH:
+		_marker.visible = false
+		return
+	_marker.visible = true
+	_marker.global_position = to
+	var fade: float = clampf((d - REACH) / 6.0, 0.0, 1.0)
+	_marker.scale = Vector3(fade, 1.0, fade)

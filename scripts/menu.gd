@@ -454,7 +454,7 @@ func _refresh_maps() -> void:
 		b.text = str(entry["name"]) if available else "%s  🔒" % entry["name"]
 		# ROW_TIGHT, not ROW_TAP: this list is five entries now and at 82 each it
 		# pushed START and LEAVE off the bottom of the lobby entirely.
-		b.custom_minimum_size = Vector2(0, ROW_TIGHT)
+		b.custom_minimum_size = Vector2(0, 52)
 		b.add_theme_font_size_override("font_size", FONT_SMALL)
 		b.disabled = not available or not can_choose
 
