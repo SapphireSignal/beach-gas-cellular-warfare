@@ -60,6 +60,22 @@ var _drive_from := Vector3.ZERO
 
 
 func _ready() -> void:
+	# Detach any multiplayer peer before anything else happens.
+	#
+	# player.setup() reads is_multiplayer_authority() to decide two things:
+	# whether to hide your own body, and whether to run physics at all. A peer
+	# left attached from a previous match makes get_unique_id() something other
+	# than 1, so both come out wrong — you spawn inside your own head and you
+	# cannot move. Setting is_local afterwards does not help, because setup()
+	# has already acted on it.
+	#
+	# An OfflineMultiplayerPeer rather than null. Godot provides it for exactly
+	# this: unique id is 1 so authority checks pass, and RPCs become no-ops
+	# instead of erroring. Setting the peer to null gives the right id but makes
+	# every RPC the player emits log "no multiplayer peer is active", once per
+	# call, forever.
+	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+
 	_world = load(WORLD_SCENE).instantiate()
 	add_child(_world)
 
@@ -89,13 +105,20 @@ func _ready() -> void:
 	# behind on Net, in which case the id is that peer's, authority fails, no
 	# camera is made current, and the whole screen renders grey with no way to
 	# do anything. Which is exactly what Jay hit.
+	# Belt and braces on top of clearing the peer, because these three are what
+	# the player actually sees go wrong and none of them should depend on
+	# networking state in a single player mode.
 	player.is_local = true
 	if player.camera != null:
 		player.camera.current = true
+	player.set_physics_process(true)
+	player.show_own_body(false)
 
 	if "--shift" in OS.get_cmdline_user_args():
-		print("AUDIT Shift | camera current=%s  player at %s"
-			% [player.camera.current if player.camera else "NO CAMERA",
+		print("AUDIT Shift | camera=%s physics=%s own_body_hidden=%s at %s"
+			% [player.camera.current if player.camera else "NONE",
+			   player.is_physics_processing(),
+			   not player.own_body_visible(),
 			   player.global_position])
 
 	_marker = _build_marker()

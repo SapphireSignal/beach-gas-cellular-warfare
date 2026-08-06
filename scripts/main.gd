@@ -162,6 +162,11 @@ func end_shift() -> void:
 	if shift != null:
 		shift.queue_free()
 		shift = null
+	# Drop the offline peer the shift installed. Leaving it attached would make
+	# the next Host a Game think it already had a peer — the mirror image of the
+	# bug that made shifts spawn you inside your own head.
+	if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
+		multiplayer.multiplayer_peer = null
 	_back_to_menu()
 
 

@@ -137,6 +137,20 @@ var _ctrl_was_down := false
 
 
 ## Called by world.gd right after authority is assigned.
+## Show or hide this player's own body.
+##
+## The local player normally never renders their own body — it would fill the
+## screen — and setup() decides that from is_multiplayer_authority(). The shift
+## mode has no networking to infer it from, so it says outright.
+func show_own_body(visible_now: bool) -> void:
+	if _body_root != null:
+		_body_root.visible = visible_now
+
+
+func own_body_visible() -> bool:
+	return _body_root != null and _body_root.visible
+
+
 func setup() -> void:
 	# A bot is simulated by the host but is nobody's point of view.
 	is_local = is_multiplayer_authority() and not is_bot
