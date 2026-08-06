@@ -81,6 +81,23 @@ func _ready() -> void:
 	if player.phone != null:
 		player.phone.visible = false
 
+	# Force the camera on, explicitly.
+	#
+	# player.setup() decides that with `is_multiplayer_authority() and not
+	# is_bot`, which reads multiplayer.get_unique_id(). A shift has no peer, so
+	# that is 1 and the check passes — *unless* a previous match left a peer
+	# behind on Net, in which case the id is that peer's, authority fails, no
+	# camera is made current, and the whole screen renders grey with no way to
+	# do anything. Which is exactly what Jay hit.
+	player.is_local = true
+	if player.camera != null:
+		player.camera.current = true
+
+	if "--shift" in OS.get_cmdline_user_args():
+		print("AUDIT Shift | camera current=%s  player at %s"
+			% [player.camera.current if player.camera else "NO CAMERA",
+			   player.global_position])
+
 	_marker = _build_marker()
 	add_child(_marker)
 

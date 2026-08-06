@@ -35,7 +35,21 @@ Set `GODOT=/Applications/Godot.app/Contents/MacOS/Godot` first, then:
 "$GODOT" --headless --path . --quit-after 20000 -- --tour
 "$GODOT" --headless --path . --quit-after 4000 -- --practice --name=Me --port=27200
 "$GODOT" --headless --path . --quit-after 4000 -- --practice --map=level_three --name=Me --port=27202
+"$GODOT" --headless --path . --quit-after 4000 -- --practice --map=beach_gas_real --name=Me --port=27204
+"$GODOT" --headless --path . --quit-after 3000 -- --shift --name=Me --port=27206
 ```
+
+Two more that catch things the suite above cannot:
+
+```
+"$GODOT" --headless --path . --script res://tools/check_doors.gd
+"$GODOT" --headless --path . --script res://tools/check_shots.gd
+```
+
+`check_doors` sweeps the player's own capsule through both shop doorways and
+names whatever it collides with — both were blocked twice, and eyeballing the
+box maths missed it both times. `check_shots` does the same for the menu
+backdrop's camera moves against real level collision.
 
 All five verified green on the Mac, 2026-08-04.
 
@@ -56,7 +70,16 @@ two `AUDIT World | <peer id> | grounded=true` lines — one `1`, one large rando
 id. One line means the guest never arrived.
 
 CLI flags: `--autohost`, `--autojoin=<ip>`, `--practice`, `--map=<id>`,
-`--name=<x>`, `--port=<n>`, `--tour`, `--shots`, `--audit`, `--min-players=<n>`.
+`--name=<x>`, `--port=<n>`, `--tour`, `--shots`, `--audit`, `--min-players=<n>`,
+`--shift`.
+
+**`--shift` drops straight into the work mode**, and it exists because that mode
+shipped to a phone as a grey screen with nothing testable about it. Under
+`--shift` it prints `AUDIT Shift | camera current=...`, which is the thing that
+was wrong: `player.setup()` makes the camera current only when
+`is_multiplayer_authority()`, and a peer left over from a previous match makes
+that false — no camera, grey screen, no way to do anything. The shift now
+clears any peer and forces the camera on regardless.
 
 **Testing more than two players needs `--min-players`.** Without it `--autohost`
 starts the moment the second peer registers, so every later guest joins a match

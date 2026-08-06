@@ -128,6 +128,11 @@ func start_shift() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 
+	# Drop any lingering peer first. A shift is single player, and a leftover
+	# multiplayer id from a previous match is what stops the player camera
+	# becoming current.
+	if Net.is_connected_to_game():
+		Net.leave()
 	_teardown_match()
 	_stop_backdrop()
 	menu_layer.hide()
@@ -220,6 +225,14 @@ func _handle_command_line() -> void:
 			var id := a.substr(6)
 			if Maps.is_available(id):
 				Net.selected_map = id
+
+	if "--shift" in args:
+		# Scripted way into the shift mode. Without this there was no way to
+		# exercise it except by hand on a phone, which is how a grey-screen
+		# regression got shipped.
+		_driven_from_cli = true
+		start_shift()
+		return
 
 	if "--practice" in args:
 		# The menu's practice button drops you in the lobby so you still get the
